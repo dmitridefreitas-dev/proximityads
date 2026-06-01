@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Proximity — Reel 2 Hook 3: Screenshot Pile-On</title>
+<link rel="icon" href="data:,"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="preload" as="image" href="screenshots/ss1.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss2.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss3.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss4.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss5.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss6.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss7.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss8.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss9.jpg"/>
+<link rel="preload" as="image" href="screenshots/ss10.jpg"/>
+<link rel="preload" as="image" href="6040.avif"/>
+<link rel="preload" as="image" href="tanjiers.jpg"/>
+<link rel="preload" as="image" href="parklux.avif"/>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000}
+body{font-family:'Inter',system-ui,sans-serif}
+#root{position:fixed;inset:0}
+@keyframes pulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.6);opacity:0}100%{transform:scale(1.6);opacity:0}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="text/babel">
+
+const C={red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E'};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const ease={
+  outCubic:t=>(--t)*t*t+1,
+  outBack:t=>{const c=1.70158,d=c+1;return 1+d*Math.pow(t-1,3)+c*Math.pow(t-1,2)},
+  outQuad:t=>t*(2-t),
+  outExpo:t=>t===1?1:1-Math.pow(2,-10*t),
+};
+
+/* ── SFX Engine ── */
+class SfxEngine{
+  constructor(){this.ctx=null;this.gains={master:null};this.droneOsc=null;this.droneGain=null;this.droneLp=null;}
+  ensureCtx(){
+    if(this.ctx)return;
+    this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    this.gains.master=this.ctx.createGain();
+    this.gains.master.gain.value=0.7;
+    this.gains.master.connect(this.ctx.destination);
+  }
+  startAmbient(duration=30){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    [130.81,196,261.63].forEach((freq,i)=>{
+      const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();
+      o.type='sine';o.frequency.value=freq;o.detune.value=(i-1)*8;
+      f.type='lowpass';f.frequency.value=600;f.Q.value=0.5;
+      g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(0.03,now+0.5);
+      g.gain.setValueAtTime(0.03,now+duration-1.5);g.gain.linearRampToValueAtTime(0,now+duration);
+      o.connect(f);f.connect(g);g.connect(this.gains.master);o.start(now);o.stop(now+duration);
+    });
+    const buf=c.createBuffer(1,c.sampleRate*duration,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const s=c.createBufferSource(),lp=c.createBiquadFilter(),gn=c.createGain();
+    s.buffer=buf;lp.type='lowpass';lp.frequency.value=350;lp.Q.value=0.3;
+    gn.gain.setValueAtTime(0,now);gn.gain.linearRampToValueAtTime(0.018,now+0.5);
+    gn.gain.setValueAtTime(0.018,now+duration-1.5);gn.gain.linearRampToValueAtTime(0,now+duration);
+    s.connect(lp);lp.connect(gn);gn.connect(this.gains.master);s.start(now);
+  }
+  thud(intensity=0.4){
+    this.ensureCtx();const c=this.ctx,n=c.currentTime;
+    /* sub bass thud */
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';
+    o.frequency.setValueAtTime(100*intensity+60,n);
+    o.frequency.exponentialRampToValueAtTime(25,n+0.15);
+    g.gain.setValueAtTime(intensity,n);
+    g.gain.exponentialRampToValueAtTime(0.001,n+0.18);
+    o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+0.2);
+    /* noise layer for impact texture */
+    const buf=c.createBuffer(1,c.sampleRate*0.08,c.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.015))*intensity;
+    const s=c.createBufferSource(),g2=c.createGain();s.buffer=buf;
+    g2.gain.setValueAtTime(intensity*0.5,n);
+    g2.gain.exponentialRampToValueAtTime(0.001,n+0.06);
+    s.connect(g2);g2.connect(this.gains.master);s.start(n);
+  }
+  startDrone(){
+    this.ensureCtx();const c=this.ctx,n=c.currentTime;
+    if(this.droneOsc)return;
+    this.droneOsc=c.createOscillator();
+    this.droneGain=c.createGain();
+    this.droneLp=c.createBiquadFilter();
+    this.droneOsc.type='sawtooth';
+    this.droneOsc.frequency.value=55;
+    this.droneLp.type='lowpass';
+    this.droneLp.frequency.value=200;
+    this.droneGain.gain.setValueAtTime(0,n);
+    this.droneOsc.connect(this.droneLp);
+    this.droneLp.connect(this.droneGain);
+    this.droneGain.connect(this.gains.master);
+    this.droneOsc.start(n);
+  }
+  setDroneLevel(level){
+    if(!this.droneGain)return;
+    const n=this.ctx.currentTime;
+    this.droneGain.gain.linearRampToValueAtTime(clamp(level,0,0.6),n+0.08);
+  }
+  stopDrone(){
+    if(!this.droneOsc)return;
+    try{
+      const n=this.ctx.currentTime;
+      this.droneGain.gain.cancelScheduledValues(n);
+      this.droneGain.gain.setValueAtTime(this.droneGain.gain.value,n);
+      this.droneGain.gain.linearRampToValueAtTime(0,n+0.02);
+      const osc=this.droneOsc;
+      setTimeout(()=>{try{osc.stop();}catch{}},100);
+      this.droneOsc=null;this.droneGain=null;this.droneLp=null;
+    }catch(e){}
+  }
+  beatDrop(){
+    this.ensureCtx();const c=this.ctx,n=c.currentTime;
+    /* deep bass sweep */
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.setValueAtTime(80,n);o.frequency.exponentialRampToValueAtTime(35,n+0.4);
+    g.gain.setValueAtTime(0.8,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.5);
+    o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+0.5);
+    /* noise burst */
+    const buf=c.createBuffer(1,c.sampleRate*0.2,c.sampleRate),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.04));
+    const s=c.createBufferSource(),g2=c.createGain();s.buffer=buf;
+    g2.gain.setValueAtTime(0.5,n);g2.gain.exponentialRampToValueAtTime(0.001,n+0.15);
+    s.connect(g2);g2.connect(this.gains.master);s.start(n);
+  }
+  tick(f=1000){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.3,n);g.gain.exponentialRampToValueAtTime(.001,n+.08);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.08);}
+  pop(){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(600,n);o.frequency.exponentialRampToValueAtTime(200,n+.1);g.gain.setValueAtTime(.4,n);g.gain.exponentialRampToValueAtTime(.001,n+.15);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.15);}
+  whoosh(p='mid'){this.ensureCtx();const c=this.ctx,n=c.currentTime,b=c.createBuffer(1,c.sampleRate*.3,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*.08));const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=p==='high'?4000:p==='low'?800:2000;f.Q.value=1.5;g.gain.setValueAtTime(.25,n);g.gain.exponentialRampToValueAtTime(.001,n+.25);s.connect(f);f.connect(g);g.connect(this.gains.master);s.start(n);}
+  ding(f=880){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.3,n);g.gain.exponentialRampToValueAtTime(.001,n+.4);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.4);}
+  slideUp(){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(300,n);o.frequency.exponentialRampToValueAtTime(900,n+.2);g.gain.setValueAtTime(.2,n);g.gain.exponentialRampToValueAtTime(.001,n+.25);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.25);}
+  confirm(){this.ensureCtx();const c=this.ctx,n=c.currentTime;[700,900,1100].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;const t=n+i*.08;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.15);o.connect(g);g.connect(this.gains.master);o.start(t);o.stop(t+.15);});}
+  thump(){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(120,n);o.frequency.exponentialRampToValueAtTime(40,n+.2);g.gain.setValueAtTime(.5,n);g.gain.exponentialRampToValueAtTime(.001,n+.25);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.25);}
+}
+
+function Logo({size=80,color=C.red}){
+  return <svg width={size} height={size} viewBox="0 0 1024 1024" fill="none"><path fill={color} d="M493.79,197.29c269-14.78,435.48,278.96,281.02,501.02-124.36,178.79-385.55,182.34-516.21,8.58-153.66-204.35-19.87-495.59,235.19-509.6ZM294,493c7.72-101.79,94.97-187.62,196.35-196.15l1.65-1.35v-55c-.75-1.02-.87-1.09-2.04-1.09-12.34-.02-28.8,3.34-40.97,6.07-117.3,26.35-204.7,127.56-213.99,247.51h59ZM534,239v58c102.23,6.2,192.16,93.31,199,196h59c-8.97-99.59-71.09-189.28-162.32-230.18-30.53-13.68-62.3-21.02-95.68-23.82ZM643.65,392.35c-108.21-112.35-302.62-42.24-309.69,115.11-5.96,132.6,131.1,225.7,252.72,171.72,111.54-49.51,142.58-197.93,56.97-286.83ZM293,534h-58c8.95,135.6,120.94,249.96,257,259v-58c-104.94-7.21-190.33-97.44-199-201ZM792,534h-59c-7.05,103.61-94.74,193.93-199,201v58c135.99-8.8,249.07-123.29,258-259Z"/><path fill={color} d="M588,646h-58v-28.5c0-.56-2.27-3.45-3.02-3.98-2.84-1.99-20.61-2.23-24.46-1.5-1.45.28-5.52,3.91-5.52,4.48v29.5h-58v-142l74.42-36.99c25.04,12.37,50.84,24,74.58,38.49v140.5ZM473.74,530.17c-2.98.61-6.27,4.32-6.68,7.39,1.26,15.77-1.88,34.59-.08,49.96,1.19,10.15,16.4,10.82,17.93-.11,1.33-9.54,1.25-39.2.11-48.93-.63-5.36-6.01-9.39-11.29-8.31ZM512.77,530.18c-3.27.35-7.55,2.67-7.71,6.38,1.01,16.08-1.56,34.15-.11,49.98,1.08,11.88,15.6,10.73,16.99,1.89,1.31-8.33,1.25-42.43.11-50.99-.55-4.15-5.08-7.72-9.28-7.27ZM548.73,530.17c-2.98.62-6.26,4.32-6.68,7.38,1.08,15.64-1.66,33.6-.05,48.94,1.19,11.34,15.43,11.48,16.94,1.95,1.38-8.68,1.16-40.86.08-49.97-.6-5.07-4.96-9.4-10.29-8.3Z"/><path fill={color} d="M405,488v44.5c0,3.26,7.48,14.82,7.93,21.14.43,5.95-3.86,9.72-3.86,12.86,0,1.93,5.55,13.08,6.48,17.45,1.13,5.31,2.96,16.6-1.58,20.52-2.84,2.45-23.83,2.18-27.34.39-6.09-3.1-3.5-15.25-2.34-21.07.93-4.67,6.22-15.23,6.3-17.29.09-2.31-2.89-6.38-3.36-9.25-1.76-10.74,5.72-16,6.79-24.74,1.87-15.28-1.48-34.17.01-49.86-6.47-3.76-13.5-6.59-20.07-10.19-1.13-.62-2.44.07-1.97-1.97l139.57-76.52,4.15.79,138.26,73.72-56.32,25.21-86.05-38.67-86.35,40.8c-5.74,1-14.43-6.85-20.25-7.83Z"/></svg>;
+}
+function Chrome({visible}){
+  if(!visible)return null;
+  return(
+    <div style={{position:'absolute',top:48,left:48,right:48,zIndex:200,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{display:'flex',alignItems:'center',gap:14}}>
+        <Logo size={48} color={C.red}/>
+        <span style={{fontWeight:900,fontSize:24,color:C.dark,letterSpacing:'-.02em'}}>Proximity</span>
+      </div>
+      <span style={{fontWeight:700,fontSize:16,letterSpacing:'.16em',textTransform:'uppercase',color:C.red}}>FOR WASHU STUDENTS</span>
+    </div>
+  );
+}
+
+/* ── SCREENSHOTS DATA ── */
+const SCREENSHOTS=[
+  /* Phase 1 — Slow (~0.8s each), soft isolated thuds */
+  {phase:1,time:0,    img:'screenshots/ss1.jpg', rot:-3,  x:60,  y:200, w:920},
+  {phase:1,time:0.8,  img:'screenshots/ss2.jpg', rot:2.5, x:120, y:540, w:860},
+  {phase:1,time:1.6,  img:'screenshots/ss3.jpg', rot:-1.5,x:80,  y:880, w:900},
+
+  /* Phase 2 — Medium (~0.4s each), thuds + drone building */
+  {phase:2,time:2.4,  img:'screenshots/ss4.jpg', rot:3,   x:100, y:380, w:880},
+  {phase:2,time:2.8,  img:'screenshots/ss5.jpg', rot:-2.5,x:50,  y:720, w:960},
+  {phase:2,time:3.2,  img:'screenshots/ss6.jpg', rot:1.5, x:90,  y:1060,w:900},
+
+  /* Phase 3 — Fast burst (~0.15s each), pure chaos */
+  {phase:3,time:3.6,  img:'screenshots/ss7.jpg', rot:-4,  x:140, y:260, w:820},
+  {phase:3,time:3.75, img:'screenshots/ss8.jpg', rot:2.5, x:40,  y:580, w:980},
+  {phase:3,time:3.9,  img:'screenshots/ss9.jpg', rot:-1,  x:100, y:900, w:880},
+  {phase:3,time:4.05, img:'screenshots/ss10.jpg',rot:0.5, x:70,  y:500, w:1000,big:true},
+];
+
+/* ── Screenshot Card Component — polaroid with actual image ── */
+function ScreenshotCard({data,visible,t}){
+  if(!visible)return null;
+  const landDur=0.12;
+  const landT=clamp(t/landDur,0,1);
+  const eased=ease.outCubic(landT);
+  const scaleBase=data.big?1.08:1;
+
+  return(
+    <div style={{
+      position:'absolute',
+      left:data.x,
+      top:data.y,
+      width:data.w,
+      background:C.white,
+      borderRadius:4,
+      padding:'12px 12px 36px 12px',
+      boxShadow:data.big
+        ?'0 20px 60px rgba(0,0,0,.32), 0 2px 8px rgba(0,0,0,.12)'
+        :'0 12px 40px rgba(0,0,0,.2), 0 1px 4px rgba(0,0,0,.08)',
+      transform:`rotate(${data.rot}deg) scale(${(.85+eased*.15)*scaleBase}) translateY(${(1-eased)*60}px)`,
+      opacity:landT,
+      zIndex:Math.round(data.time*100)+(data.big?100:0),
+      overflow:'hidden',
+    }}>
+      <img src={data.img} style={{
+        width:'100%',
+        height:'auto',
+        display:'block',
+        borderRadius:2,
+      }}/>
+    </div>
+  );
+}
+
+/* ── HOOK TIMELINE ── */
+const HOOK={
+  pileEnd:4.05,       /* last screenshot lands */
+  holdEnd:4.45,       /* hold pile visible */
+  blackCut:4.45,      /* hard cut to black, instant silence */
+  meetText:4.7,       /* "Meet Proximity." appears */
+  meetHold:5.7,       /* hold the text — 1s visible */
+  beatDrop:5.7,       /* beat drop, cut to body */
+  hookEnd:6.0,        /* hook fully exits */
+};
+const TH_END=6.0;
+
+/* ── BODY TIMELINE ── */
+const TB={
+  formTitle:{s:TH_END,          e:TH_END+0.8},
+  formFill: {s:TH_END+0.8,     e:TH_END+5.0},
+  formSubmit:{s:TH_END+5.0,    e:TH_END+5.7},
+  cards:    {s:TH_END+5.7,     e:TH_END+8.0},
+  notSure:  {s:TH_END+8.0,     e:TH_END+9.5},
+  chat:     {s:TH_END+9.5,     e:TH_END+13.7},
+  listing:  {s:TH_END+13.7,    e:TH_END+16.7},
+  tour:     {s:TH_END+16.7,    e:TH_END+18.0},
+  cta:      {s:TH_END+18.0,    e:TH_END+21.7},
+};
+const TOTAL=TH_END+21.7;
+
+/* ── Hook Scene ── */
+function SceneHook({t}){
+  if(t>HOOK.hookEnd+0.3)return null;
+
+  /* Pile visible until blackCut */
+  const showPile=t<HOOK.blackCut;
+  /* Black screen */
+  const isBlack=t>=HOOK.blackCut;
+  /* Meet text animation */
+  const meetIn=t>=HOOK.meetText?clamp((t-HOOK.meetText)/0.25,0,1):0;
+  /* Exit fade at beat drop */
+  const exitF=t>=HOOK.beatDrop?clamp((t-HOOK.beatDrop)/0.3,0,1):0;
+
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:20,opacity:1-exitF}}>
+      {/* Pile-on background */}
+      {showPile&&(
+        <div style={{position:'absolute',inset:0,background:C.offWhite}}>
+          {/* Subtle dark gradient building at bottom for mood */}
+          <div style={{
+            position:'absolute',bottom:0,left:0,right:0,height:'40%',
+            background:'linear-gradient(transparent, rgba(0,0,0,0.06))',
+            pointerEvents:'none',
+          }}/>
+          {SCREENSHOTS.map((ss,i)=>(
+            <ScreenshotCard key={i} data={ss} visible={t>=ss.time} t={clamp(t-ss.time,0,2)}/>
+          ))}
+        </div>
+      )}
+
+      {/* Black frame + Meet Proximity */}
+      {isBlack&&(
+        <div style={{
+          position:'absolute',inset:0,background:C.black,
+          display:'flex',alignItems:'center',justifyContent:'center',
+        }}>
+          {meetIn>0&&(
+            <div style={{
+              opacity:meetIn,
+              transform:`translateY(${(1-ease.outCubic(meetIn))*24}px)`,
+            }}>
+              <div style={{
+                fontWeight:900,fontSize:88,letterSpacing:'-.04em',
+                color:C.white,textAlign:'center',lineHeight:1.1,
+              }}>
+                Meet <span style={{color:C.red}}>Proximity.</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Body Scenes ── */
+function FormField({label,value,active,done}){
+  return(
+    <div style={{
+      padding:'28px 32px',borderRadius:20,background:C.white,
+      border:`2.5px solid ${active?C.red:done?C.green:'rgba(0,0,0,.08)'}`,
+      marginBottom:18,
+    }}>
+      <div style={{fontSize:17,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:C.gray,marginBottom:10}}>{label}</div>
+      {done||active
+        ?<div style={{fontSize:30,fontWeight:700,color:C.dark,whiteSpace:'pre-line',lineHeight:1.35}}>{value}</div>
+        :<div style={{height:36,borderRadius:10,background:'rgba(0,0,0,.04)'}}/>
+      }
+    </div>
+  );
+}
+
+function SceneFormTitle({t}){
+  if(t<TB.formTitle.s||t>TB.formTitle.e+0.3)return null;
+  const lt=t-TB.formTitle.s;
+  const inT=clamp(lt/0.4,0,1);
+  const exitF=lt>0.5?clamp((lt-0.5)/0.3,0,1):0;
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,display:'flex',alignItems:'center',justifyContent:'center',opacity:1-exitF}}>
+      <div style={{opacity:inT,transform:`scale(${.85+ease.outBack(inT)*.15})`}}>
+        <div style={{fontWeight:900,fontSize:96,letterSpacing:'-.04em',color:C.dark,textAlign:'center'}}>
+          Find Your <span style={{color:C.red}}>Place</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SceneForm({t}){
+  if(t<TB.formFill.s||t>TB.formSubmit.e+0.3)return null;
+  const lt=t-TB.formFill.s;
+  const inT=clamp(lt/0.3,0,1);
+  const submitLt=t>=TB.formSubmit.s?t-TB.formSubmit.s:0;
+  const btnT=submitLt>0?clamp(submitLt/0.3,0,1):0;
+  const exitF=t>TB.formSubmit.e-0.3?clamp((t-(TB.formSubmit.e-0.3))/0.3,0,1):0;
+  const fields=[
+    {label:'Group Size?',value:'2 people',delay:0},
+    {label:'Budget per person?',value:'Under $800',delay:1.0},
+    {label:'Move-in?',value:'August 1st',delay:2.0},
+    {label:'What matters most? Pick 2',value:'“Walking distance to campus”\n“Near restaurants & nightlife”',delay:3.0},
+  ];
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{width:'100%',padding:'0 48px'}}>
+        <div style={{fontWeight:900,fontSize:52,letterSpacing:'-.03em',color:C.dark,marginBottom:44}}>
+          Find Your <span style={{color:C.red}}>Place</span>
+        </div>
+        {fields.map((f,i)=>{
+          const ft=lt-f.delay;
+          return <FormField key={i} label={f.label} value={f.value} active={ft>=0&&ft<1} done={ft>=0.8}/>;
+        })}
+        <div style={{marginTop:32,textAlign:'center'}}>
+          <div style={{
+            display:'inline-block',padding:'26px 60px',borderRadius:999,
+            background:btnT>0.5?C.red:'rgba(226,58,47,.15)',
+            color:btnT>0.5?C.white:C.red,
+            fontWeight:800,fontSize:30,
+            boxShadow:btnT>0.5?'0 12px 36px rgba(226,58,47,.35)':'none',
+          }}>Match me with places</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const PHOTOS={
+  card1:'6040.avif',
+  card2:'tanjiers.jpg',
+  chatCard:'parklux.avif',
+  listing:'parklux.avif',
+};
+
+function MatchCard({name,hood,price,specs,walkCampus,walkShuttle,delay,lt,badge,photo,pills}){
+  const t=clamp((lt-delay)/0.5,0,1);
+  const e=ease.outBack(t);
+  return(
+    <div style={{
+      width:'100%',borderRadius:20,background:C.white,overflow:'hidden',
+      boxShadow:'0 8px 28px rgba(0,0,0,.1)',border:'1.5px solid rgba(0,0,0,.06)',
+      opacity:t,transform:`translateY(${(1-e)*80}px)`,position:'relative',
+    }}>
+      {badge&&(
+        <div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'7px 14px',background:C.red,color:C.white,borderRadius:10,fontWeight:800,fontSize:15,letterSpacing:'.1em',textTransform:'uppercase'}}>TOP PICK</div>
+      )}
+      <img src={photo} style={{width:'100%',aspectRatio:'16/9',objectFit:'cover',display:'block'}}/>
+      <div style={{padding:'16px 22px'}}>
+        <div style={{fontWeight:800,fontSize:24,color:C.dark}}>{name}</div>
+        <div style={{fontSize:16,color:C.gray,marginTop:2}}>{hood}</div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:8}}>
+          <div style={{fontWeight:800,fontSize:24,color:C.dark}}>{price}</div>
+        </div>
+        <div style={{fontSize:16,color:C.gray,marginTop:3}}>{specs}</div>
+        <div style={{display:'flex',alignItems:'center',gap:16,marginTop:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <span style={{fontSize:16,fontWeight:700,color:C.red}}>{walkCampus}</span>
+            <span style={{fontSize:14,color:C.gray}}>campus</span>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <span style={{fontSize:16,fontWeight:700,color:C.green}}>{walkShuttle}</span>
+            <span style={{fontSize:14,color:C.gray}}>shuttle</span>
+          </div>
+        </div>
+        {pills&&pills.length>0&&(
+          <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
+            {pills.map((p,i)=>(
+              <div key={i} style={{padding:'5px 12px',borderRadius:999,background:C.red,color:C.white,fontSize:15,fontWeight:700}}>{p}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SceneCards({t}){
+  if(t<TB.cards.s||t>TB.notSure.e+0.3)return null;
+  const lt=t-TB.cards.s;
+  const inT=clamp(lt/0.3,0,1);
+  const nst=t>=TB.notSure.s?clamp((t-TB.notSure.s)/0.4,0,1):0;
+  const exitF=t>TB.notSure.e-0.3?clamp((t-(TB.notSure.e-0.3))/0.3,0,1):0;
+  /* "Not sure yet" press animation: appears, then after 0.5s presses down for 0.3s, holds 0.2s, releases 0.2s */
+  const nsAppearEnd=TB.notSure.s+0.4;
+  const pressStart=nsAppearEnd+0.3;
+  const pressDown=t>=pressStart?clamp((t-pressStart)/0.25,0,1):0;
+  const pressHoldEnd=pressStart+0.25+0.2;
+  const pressUp=t>=pressHoldEnd?clamp((t-pressHoldEnd)/0.2,0,1):0;
+  const pressScale=pressDown>0?(pressUp>0?1-pressUp*0.05:0.92+0.03*(1-ease.outCubic(pressDown))):1;
+  const pressedState=pressDown>0.5;
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{width:'100%',padding:'0 48px'}}>
+        <div style={{fontWeight:800,fontSize:28,color:C.dark,marginBottom:20}}>Your matches</div>
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <MatchCard lt={lt} delay={0.2} badge={true} name="6040 Kingsbury Ave" hood="St. Louis, MO 63112" price="$1,395/mo" specs="2 bed | 1 bath | Standard" walkCampus="19 min" walkShuttle="1 min" photo={PHOTOS.card1} pills={['Walking distance','Near nightlife']}/>
+          <MatchCard lt={lt} delay={0.5} badge={false} name="Tanjiers" hood="5522 Delmar Blvd, St. Louis, MO 63112" price="$938-$1,169/mo" specs="0-2 bed | 1 bath | Standard" walkCampus="34 min" walkShuttle="2 min" photo={PHOTOS.card2} pills={['Near restaurants']}/>
+        </div>
+        <div style={{marginTop:32,textAlign:'center',opacity:nst,transform:`translateY(${(1-ease.outCubic(nst))*20}px)`}}>
+          <div style={{
+            display:'inline-block',padding:'20px 52px',borderRadius:999,
+            border:`2.5px solid ${pressedState?C.red:'rgba(0,0,0,.12)'}`,
+            fontWeight:700,fontSize:26,
+            color:pressedState?C.red:C.gray,
+            background:pressedState?'rgba(226,58,47,.06)':'transparent',
+            transform:`scale(${pressScale})`,
+            boxShadow:pressedState?'0 2px 8px rgba(226,58,47,.15)':'none',
+            transition:'border-color 0.1s, color 0.1s, background 0.1s',
+          }}>Not sure yet</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatBubble({from,text,delay,lt}){
+  const t=clamp((lt-delay)/0.4,0,1);
+  const e=ease.outCubic(t);
+  const isBot=from==='bot';
+  return(
+    <div style={{display:'flex',justifyContent:isBot?'flex-start':'flex-end',marginBottom:18,opacity:t,transform:`translateY(${(1-e)*20}px)`}}>
+      <div style={{
+        maxWidth:'80%',padding:'22px 26px',borderRadius:22,
+        borderBottomLeftRadius:isBot?4:22,borderBottomRightRadius:isBot?22:4,
+        background:isBot?C.white:C.red,color:isBot?C.dark:C.white,
+        fontSize:25,fontWeight:500,lineHeight:1.4,
+        boxShadow:isBot?'0 4px 16px rgba(0,0,0,.06)':'0 4px 16px rgba(226,58,47,.2)',
+      }}>{text}</div>
+    </div>
+  );
+}
+
+function SceneChat({t}){
+  if(t<TB.chat.s||t>TB.listing.s+0.3)return null;
+  const lt=t-TB.chat.s;
+  const inT=clamp(lt/0.3,0,1);
+  const exitF=t>TB.listing.s-0.3?clamp((t-(TB.listing.s-0.3))/0.3,0,1):0;
+  const cardAppear=lt>3?clamp((lt-3)/0.4,0,1):0;
+  /* Card click: press down at lt=3.8, hold, release, then scene exits */
+  const clickStart=3.8;
+  const clickDown=lt>=clickStart?clamp((lt-clickStart)/0.12,0,1):0;
+  const clickHold=clickStart+0.12+0.15;
+  const clickUp=lt>=clickHold?clamp((lt-clickHold)/0.1,0,1):0;
+  const clickScale=clickDown>0?(clickUp>0?0.96+clickUp*0.04:1-clickDown*0.04):1;
+  const clickHighlight=clickDown>0&&clickUp<1;
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{width:'100%',padding:'0 48px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:36}}>
+          <div style={{width:14,height:14,borderRadius:'50%',background:C.green}}/>
+          <div style={{fontWeight:800,fontSize:24,color:C.dark}}>Proximity Concierge</div>
+          <div style={{fontWeight:600,fontSize:16,color:C.green,letterSpacing:'.08em',textTransform:'uppercase'}}>REPLYING LIVE</div>
+        </div>
+        <ChatBubble from="bot"  lt={lt} delay={0.3} text="Would you spend $50/month more to have a gym in your building?"/>
+        <ChatBubble from="user" lt={lt} delay={1.2} text="yes, does it include parking?"/>
+        <ChatBubble from="bot"  lt={lt} delay={2.2} text="Yes, utilities and parking included. We found the place for you."/>
+        {lt>3&&(
+          <div style={{
+            marginTop:20,
+            marginLeft:-24,marginRight:-24,
+            opacity:cardAppear,
+            transform:`translateY(${(1-ease.outBack(cardAppear))*40}px) scale(${clickScale})`,
+          }}>
+            <div style={{
+              borderRadius:22,background:C.white,overflow:'hidden',
+              boxShadow:clickHighlight?'0 4px 16px rgba(226,58,47,.25)':'0 10px 36px rgba(0,0,0,.12)',
+              border:`2.5px solid ${clickHighlight?C.red:'rgba(226,58,47,.4)'}`,
+            }}>
+              <img src={PHOTOS.chatCard} style={{width:'100%',height:300,objectFit:'cover',display:'block'}}/>
+              <div style={{padding:'20px 24px'}}>
+                <div style={{fontWeight:800,fontSize:28,color:C.dark}}>Park Lux</div>
+                <div style={{fontSize:19,color:C.gray,marginTop:4}}>5560 Pershing Ave, St. Louis, MO 63112</div>
+                <div style={{fontWeight:800,fontSize:26,color:C.dark,marginTop:8}}>$1,420-$1,520/mo</div>
+                <div style={{fontSize:19,color:C.gray,marginTop:5}}>2 bed | 1-1.5 bath | Standard</div>
+                <div style={{display:'flex',alignItems:'center',gap:20,marginTop:10}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:19,fontWeight:700,color:C.red}}>33 min</span>
+                    <span style={{fontSize:17,color:C.gray}}>campus</span>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:19,fontWeight:700,color:C.green}}>6 min</span>
+                    <span style={{fontSize:17,color:C.gray}}>shuttle</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SceneListing({t}){
+  if(t<TB.listing.s||t>TB.tour.e+0.3)return null;
+  const lt=t-TB.listing.s;
+  const inT=clamp(lt/0.5,0,1);
+  const ie=ease.outCubic(inT);
+  const tourLt=t>=TB.tour.s?t-TB.tour.s:0;
+  const tourBtnDown=tourLt>0.1?clamp((tourLt-0.1)/0.12,0,1):0;
+  const tourBtnUp=tourLt>0.37?clamp((tourLt-0.37)/0.1,0,1):0;
+  const tourScale=tourBtnDown>0?(tourBtnUp>0?0.96+tourBtnUp*0.04:1-tourBtnDown*0.04):1;
+  const confirmed=tourLt>0.5;
+  const exitF=t>TB.tour.e-0.3?clamp((t-(TB.tour.e-0.3))/0.3,0,1):0;
+  const amenities=['Furnished','In-unit laundry','Gym','Parking'];
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div style={{
+        width:'calc(100% - 64px)',
+        borderRadius:24,background:C.white,overflow:'hidden',
+        boxShadow:'0 20px 60px rgba(0,0,0,.12)',
+        transform:`scale(${.9+ie*.1})`,
+        display:'flex',flexDirection:'column',
+      }}>
+        {/* 16:9 photo */}
+        <div style={{width:'100%',aspectRatio:'16/9',overflow:'hidden',flexShrink:0}}>
+          <img src={PHOTOS.listing} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+        </div>
+        <div style={{padding:'28px 32px',display:'flex',flexDirection:'column'}}>
+          <div style={{fontWeight:900,fontSize:40,color:C.dark}}>Park Lux</div>
+          <div style={{fontSize:22,color:C.gray,marginTop:6}}>5560 Pershing Ave, St. Louis, MO 63112</div>
+          <div style={{fontWeight:800,fontSize:32,color:C.dark,marginTop:10}}>$1,420-$1,520/mo</div>
+          <div style={{fontSize:20,color:C.gray,marginTop:6}}>2 bed | 1-1.5 bath | Standard</div>
+          <div style={{marginTop:14,fontSize:20,color:C.gray,lineHeight:1.5}}>Spacious units near the Loop with modern finishes, in-unit laundry, and walkable access to campus...</div>
+          {/* Commute row */}
+          <div style={{display:'flex',gap:12,marginTop:14,flexWrap:'wrap'}}>
+            <div style={{padding:'8px 16px',borderRadius:10,background:'rgba(226,58,47,.08)',fontSize:18,fontWeight:600,color:C.red}}>33 min walk to campus</div>
+            <div style={{padding:'8px 16px',borderRadius:10,background:'rgba(34,197,94,.08)',fontSize:18,fontWeight:600,color:C.green}}>6 min to shuttle</div>
+          </div>
+          {/* Amenity tags */}
+          <div style={{display:'flex',gap:10,marginTop:14,flexWrap:'wrap'}}>
+            {amenities.map((a,i)=>{
+              const at=clamp((lt-0.4-i*0.12)/0.25,0,1);
+              return <div key={i} style={{padding:'8px 16px',borderRadius:12,background:C.redTint,fontSize:18,fontWeight:700,color:C.red,opacity:at}}>{a}</div>;
+            })}
+          </div>
+          <div style={{marginTop:12}}>
+            <div style={{display:'inline-block',padding:'8px 16px',borderRadius:10,background:'rgba(34,197,94,.1)',fontSize:18,fontWeight:700,color:C.green}}>Utilities Included</div>
+          </div>
+          {/* Request Tour button */}
+          <div style={{marginTop:24}}>
+            <div style={{
+              textAlign:'center',padding:'22px 0',borderRadius:999,
+              background:confirmed?C.green:C.red,color:C.white,fontWeight:800,fontSize:28,
+              boxShadow:confirmed?'0 6px 20px rgba(34,197,94,.3)':'0 6px 20px rgba(226,58,47,.3)',
+              transform:`scale(${tourScale})`,
+            }}>{confirmed?'✓ Tour Requested':'Request Tour'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SceneCTA({t}){
+  if(t<TB.cta.s)return null;
+  const lt=t-TB.cta.s;
+  const logoT=clamp(lt/0.5,0,1);
+  const tagT=clamp((lt-0.4)/0.5,0,1);
+  const btnT=clamp((lt-0.9)/0.5,0,1);
+  const freeT=clamp((lt-1.4)/0.4,0,1);
+  const pulse=1+Math.sin(lt*4)*0.015*clamp((lt-1.4)*2,0,1);
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+      <div style={{opacity:logoT,transform:`translateY(${(1-ease.outCubic(logoT))*30}px)`,display:'flex',flexDirection:'column',alignItems:'center',gap:24}}>
+        <Logo size={160} color={C.red}/>
+        <div style={{fontWeight:900,fontSize:80,letterSpacing:'-.04em',color:C.dark}}>Proximity</div>
+      </div>
+      <div style={{marginTop:56,textAlign:'center',opacity:tagT}}>
+        <div style={{fontWeight:800,fontSize:48,lineHeight:1.2,color:C.dark}}>Find your place.<br/><span style={{color:C.red}}>Skip the chaos.</span></div>
+      </div>
+      <div style={{marginTop:60,opacity:btnT,transform:`scale(${.85+ease.outBack(btnT)*.15*pulse})`}}>
+        <div style={{padding:'30px 60px',background:C.red,color:C.white,fontWeight:800,fontSize:34,borderRadius:999,boxShadow:'0 16px 48px rgba(226,58,47,.35)'}}>useproximity.org/matchmaking</div>
+      </div>
+      <div style={{marginTop:32,opacity:freeT}}>
+        <div style={{fontSize:20,fontWeight:700,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── App ── */
+function App(){
+  const[started,setStarted]=React.useState(false);
+  const[t,setT]=React.useState(0);
+  const[done,setDone]=React.useState(false);
+  const[zoom,setZoom]=React.useState(1);
+  const sfxRef=React.useRef(null);
+  const firedRef=React.useRef(new Set());
+  const startTimeRef=React.useRef(null);
+
+  React.useEffect(()=>{
+    const m=()=>setZoom(Math.min(window.innerWidth/1080,window.innerHeight/1920));
+    m();window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m);
+  },[]);
+
+  /* SFX dispatch — fires once per key when t crosses the threshold */
+  React.useEffect(()=>{
+    if(!started||done)return;
+    const sfx=sfxRef.current;if(!sfx)return;
+    const fired=firedRef.current;
+    const fire=(k,time,fn)=>{if(t>=time&&!fired.has(k)){fired.add(k);fn();}};
+
+    /* Phase 1 — soft isolated thuds (gain 0.3) */
+    fire('t0',0,    ()=>sfx.thud(0.3));
+    fire('t1',0.8,  ()=>sfx.thud(0.3));
+    fire('t2',1.6,  ()=>sfx.thud(0.35));
+
+    /* Phase 2 — louder thuds + tension drone starts */
+    fire('drone',2.4,()=>{sfx.startDrone();sfx.setDroneLevel(0.1);});
+    fire('t3',2.4,  ()=>sfx.thud(0.4));
+    fire('t4',2.8,  ()=>{sfx.thud(0.45);sfx.setDroneLevel(0.2);});
+    fire('t5',3.2,  ()=>{sfx.thud(0.5);sfx.setDroneLevel(0.3);});
+
+    /* Phase 3 — rapid, loud, overlapping thuds; drone overwhelming */
+    fire('t6',3.6,  ()=>{sfx.thud(0.55);sfx.setDroneLevel(0.38);});
+    fire('t7',3.75, ()=>{sfx.thud(0.6);sfx.setDroneLevel(0.42);});
+    fire('t8',3.9,  ()=>{sfx.thud(0.7);sfx.setDroneLevel(0.48);});
+    fire('t9',4.05, ()=>{sfx.thud(0.85);sfx.setDroneLevel(0.55);});
+
+    /* Instant silence at blackCut */
+    fire('silence',HOOK.blackCut,()=>sfx.stopDrone());
+
+    /* Beat drop */
+    fire('beatDrop',HOOK.beatDrop,()=>sfx.beatDrop());
+
+    /* Body SFX */
+    fire('f1',TB.formFill.s+0.1,()=>sfx.tick(1100));
+    fire('f2',TB.formFill.s+1.1,()=>sfx.tick(1100));
+    fire('f3',TB.formFill.s+2.1,()=>sfx.tick(1100));
+    fire('f4',TB.formFill.s+3.1,()=>sfx.tick(1100));
+    fire('fb',TB.formSubmit.s+0.1,()=>sfx.pop());
+    fire('c1',TB.cards.s+0.3,()=>sfx.slideUp());
+    fire('c2',TB.cards.s+0.6,()=>sfx.slideUp());
+    fire('ns',TB.notSure.s+0.1,()=>sfx.tick(800));
+    fire('ch1',TB.chat.s+0.3,()=>sfx.ding(900));
+    fire('ch2',TB.chat.s+1.3,()=>sfx.ding(700));
+    fire('ch3',TB.chat.s+2.3,()=>sfx.ding(900));
+    fire('chc',TB.chat.s+3.1,()=>sfx.whoosh());
+    fire('lo',TB.listing.s+0.1,()=>sfx.whoosh('high'));
+    fire('tr',TB.tour.s+0.1,()=>sfx.pop());
+    fire('tc',TB.tour.s+0.7,()=>sfx.confirm());
+    fire('ci',TB.cta.s+0.1,()=>sfx.thump());
+  },[t,started,done]);
+
+  /* Animation loop — uses ref-based start time so first frame is t=0 exactly */
+  React.useEffect(()=>{
+    if(!started)return;
+    let raf;
+    const tick=(now)=>{
+      if(startTimeRef.current===null) startTimeRef.current=now;
+      const elapsed=(now-startTimeRef.current)/1000;
+      setT(elapsed);
+      if(elapsed>=TOTAL){setDone(true);return;}
+      raf=requestAnimationFrame(tick);
+    };
+    raf=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(raf);
+  },[started]);
+
+  const begin=async()=>{
+    if(!sfxRef.current) sfxRef.current=new SfxEngine();
+    sfxRef.current.ensureCtx();
+    try{await sfxRef.current.ctx.resume();}catch{}
+    firedRef.current=new Set();
+    startTimeRef.current=null;
+    setT(0);
+    setDone(false);
+    /* Fire the first thud IMMEDIATELY before RAF starts so there's zero delay */
+    sfxRef.current.thud(0.3);
+    firedRef.current.add('t0');
+    setStarted(true);
+  };
+
+  const restart=()=>{
+    setStarted(false);setDone(false);setT(0);
+    if(sfxRef.current)sfxRef.current.stopDrone();
+    setTimeout(begin,80);
+  };
+
+  const showChrome=started&&!done&&t>TB.formTitle.s&&t<TB.cta.s;
+
+  return(
+    <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'#000'}}>
+      <div style={{width:1080,height:1920,position:'relative',overflow:'hidden',zoom,background:C.offWhite}}>
+        <Chrome visible={showChrome}/>
+        <SceneHook t={t}/>
+        <SceneFormTitle t={t}/>
+        <SceneForm t={t}/>
+        <SceneCards t={t}/>
+        <SceneChat t={t}/>
+        <SceneListing t={t}/>
+        <SceneCTA t={t}/>
+
+        {/* Tap-to-play splash */}
+        {!started&&(
+          <div onClick={begin} style={{position:'absolute',inset:0,zIndex:500,background:'#0A0A0B',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+            <Logo size={140} color={C.red}/>
+            <div style={{marginTop:28,fontWeight:900,fontSize:72,letterSpacing:'-.04em',color:'#fff'}}>Proximity</div>
+            <div style={{marginTop:14,fontWeight:700,fontSize:19,letterSpacing:'.3em',textTransform:'uppercase',color:'rgba(255,255,255,.45)'}}>screenshot pile-on hook &middot; sound on</div>
+            <div style={{marginTop:60,width:110,height:110,borderRadius:'50%',background:C.red,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+              <div style={{width:0,height:0,borderLeft:'30px solid #fff',borderTop:'20px solid transparent',borderBottom:'20px solid transparent',marginLeft:10}}/>
+              <span style={{position:'absolute',inset:0,borderRadius:'50%',background:C.red,animation:'pulse 1.8s ease-out infinite',zIndex:-1}}/>
+            </div>
+          </div>
+        )}
+
+        {/* Replay button */}
+        {done&&(
+          <div onClick={restart} style={{position:'absolute',inset:0,zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:100,cursor:'pointer'}}>
+            <div style={{padding:'18px 44px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',backdropFilter:'blur(10px)',color:'#fff',borderRadius:999,fontWeight:700,fontSize:22,letterSpacing:'.15em',textTransform:'uppercase'}}>&#8635; tap to replay</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>

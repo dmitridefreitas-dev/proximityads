@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Proximity — Reel 2 Hook 1: Explainer (Landscape)</title>
+<link rel="icon" href="data:,"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#0A0A0A}
+body{font-family:'Inter',system-ui,sans-serif}
+#root{position:fixed;inset:0}
+@keyframes pulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.6);opacity:0}100%{transform:scale(1.6);opacity:0}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="text/babel">
+
+/* ── 16:9 LANDSCAPE VERSION ─────────────────────────────
+   Same content as portrait, re-laid out for 1920x1080.
+   Video scenes stay full-bleed. UI scenes use side-by-side
+   layout: left panel for text/form, right for cards/visuals.
+   ─────────────────────────────────────────────────────── */
+
+const C={
+  red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',
+  dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E',
+};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const ease={
+  outCubic:t=>(--t)*t*t+1,
+  outBack:t=>{const c=1.70158,d=c+1;return 1+d*Math.pow(t-1,3)+c*Math.pow(t-1,2)},
+  outQuad:t=>t*(2-t),
+  outExpo:t=>t===1?1:1-Math.pow(2,-10*t),
+  inQuad:t=>t*t,
+};
+
+class SfxEngine{
+  constructor(){this.ctx=null;this.gains={master:null};}
+  ensureCtx(){if(this.ctx)return;this.ctx=new(window.AudioContext||window.webkitAudioContext)();this.gains.master=this.ctx.createGain();this.gains.master.gain.value=0.6;this.gains.master.connect(this.ctx.destination);}
+  tick(f=1000){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.3,n);g.gain.exponentialRampToValueAtTime(.001,n+.08);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.08);}
+  pop(){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(600,n);o.frequency.exponentialRampToValueAtTime(200,n+.1);g.gain.setValueAtTime(.4,n);g.gain.exponentialRampToValueAtTime(.001,n+.15);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.15);}
+  whoosh(p='mid'){this.ensureCtx();const c=this.ctx,n=c.currentTime,b=c.createBuffer(1,c.sampleRate*.3,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*.08));const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=p==='high'?4000:p==='low'?800:2000;f.Q.value=1.5;g.gain.setValueAtTime(.25,n);g.gain.exponentialRampToValueAtTime(.001,n+.25);s.connect(f);f.connect(g);g.connect(this.gains.master);s.start(n);}
+  ding(f=880){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.3,n);g.gain.exponentialRampToValueAtTime(.001,n+.4);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.4);}
+  thump(){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(120,n);o.frequency.exponentialRampToValueAtTime(40,n+.2);g.gain.setValueAtTime(.5,n);g.gain.exponentialRampToValueAtTime(.001,n+.25);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.25);}
+  slideUp(){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(300,n);o.frequency.exponentialRampToValueAtTime(900,n+.2);g.gain.setValueAtTime(.2,n);g.gain.exponentialRampToValueAtTime(.001,n+.25);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.25);}
+  confirm(){this.ensureCtx();const c=this.ctx,n=c.currentTime;[700,900,1100].forEach((f,i)=>{const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;const t=n+i*.08;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.15);o.connect(g);g.connect(this.gains.master);o.start(t);o.stop(t+.15);});}
+  rewindSound(){this.ensureCtx();const c=this.ctx,n=c.currentTime;const o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.setValueAtTime(3000,n);o.frequency.exponentialRampToValueAtTime(80,n+0.9);g.gain.setValueAtTime(0.35,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.9);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+0.9);const buf=c.createBuffer(1,c.sampleRate*0.8,c.sampleRate),d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*0.6*Math.exp(-i/(c.sampleRate*0.4));const s=c.createBufferSource(),f=c.createBiquadFilter(),gn=c.createGain();s.buffer=buf;f.type='highpass';f.frequency.value=2000;gn.gain.setValueAtTime(0.3,n);gn.gain.exponentialRampToValueAtTime(0.001,n+0.8);s.connect(f);f.connect(gn);gn.connect(this.gains.master);s.start(n);}
+}
+
+function Logo({size=80,color=C.red}){
+  return(<svg width={size} height={size} viewBox="0 0 1024 1024" fill="none"><path fill={color} d="M493.79,197.29c269-14.78,435.48,278.96,281.02,501.02-124.36,178.79-385.55,182.34-516.21,8.58-153.66-204.35-19.87-495.59,235.19-509.6ZM294,493c7.72-101.79,94.97-187.62,196.35-196.15l1.65-1.35v-55c-.75-1.02-.87-1.09-2.04-1.09-12.34-.02-28.8,3.34-40.97,6.07-117.3,26.35-204.7,127.56-213.99,247.51h59ZM534,239v58c102.23,6.2,192.16,93.31,199,196h59c-8.97-99.59-71.09-189.28-162.32-230.18-30.53-13.68-62.3-21.02-95.68-23.82ZM643.65,392.35c-108.21-112.35-302.62-42.24-309.69,115.11-5.96,132.6,131.1,225.7,252.72,171.72,111.54-49.51,142.58-197.93,56.97-286.83ZM293,534h-58c8.95,135.6,120.94,249.96,257,259v-58c-104.94-7.21-190.33-97.44-199-201ZM792,534h-59c-7.05,103.61-94.74,193.93-199,201v58c135.99-8.8,249.07-123.29,258-259Z"/><path fill={color} d="M588,646h-58v-28.5c0-.56-2.27-3.45-3.02-3.98-2.84-1.99-20.61-2.23-24.46-1.5-1.45.28-5.52,3.91-5.52,4.48v29.5h-58v-142l74.42-36.99c25.04,12.37,50.84,24,74.58,38.49v140.5ZM473.74,530.17c-2.98.61-6.27,4.32-6.68,7.39,1.26,15.77-1.88,34.59-.08,49.96,1.19,10.15,16.4,10.82,17.93-.11,1.33-9.54,1.25-39.2.11-48.93-.63-5.36-6.01-9.39-11.29-8.31ZM512.77,530.18c-3.27.35-7.55,2.67-7.71,6.38,1.01,16.08-1.56,34.15-.11,49.98,1.08,11.88,15.6,10.73,16.99,1.89,1.31-8.33,1.25-42.43.11-50.99-.55-4.15-5.08-7.72-9.28-7.27ZM548.73,530.17c-2.98.62-6.26,4.32-6.68,7.38,1.08,15.64-1.66,33.6-.05,48.94,1.19,11.34,15.43,11.48,16.94,1.95,1.38-8.68,1.16-40.86.08-49.97-.6-5.07-4.96-9.4-10.29-8.3Z"/><path fill={color} d="M405,488v44.5c0,3.26,7.48,14.82,7.93,21.14.43,5.95-3.86,9.72-3.86,12.86,0,1.93,5.55,13.08,6.48,17.45,1.13,5.31,2.96,16.6-1.58,20.52-2.84,2.45-23.83,2.18-27.34.39-6.09-3.1-3.5-15.25-2.34-21.07.93-4.67,6.22-15.23,6.3-17.29.09-2.31-2.89-6.38-3.36-9.25-1.76-10.74,5.72-16,6.79-24.74,1.87-15.28-1.48-34.17.01-49.86-6.47-3.76-13.5-6.59-20.07-10.19-1.13-.62-2.44.07-1.97-1.97l139.57-76.52,4.15.79,138.26,73.72-56.32,25.21-86.05-38.67-86.35,40.8c-5.74,1-14.43-6.85-20.25-7.83Z"/></svg>);
+}
+
+function Chrome({visible}){
+  if(!visible)return null;
+  return(
+    <div style={{position:'absolute',top:28,left:36,right:36,zIndex:200,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <Logo size={36} color={C.red}/>
+        <span style={{fontWeight:900,fontSize:20,color:C.dark,letterSpacing:'-.02em'}}>proximity</span>
+      </div>
+      <span style={{fontWeight:700,fontSize:14,letterSpacing:'.14em',textTransform:'uppercase',color:C.red}}>FOR WASHU STUDENTS</span>
+    </div>
+  );
+}
+
+const T={
+  vidCheers:{s:0,e:5},textHow:{s:5,e:7},rewind:{s:7,e:8.5},
+  vidSitting:{s:8.5,e:12},formTitle:{s:12,e:12.8},formFill:{s:12.8,e:17},
+  formSubmit:{s:17,e:17.7},cards:{s:17.7,e:20},notSure:{s:20,e:20.8},
+  chat:{s:20.8,e:25},listing:{s:25,e:28},tour:{s:28,e:29.3},cta:{s:29.3,e:31.5},
+};
+const TOTAL=31.5;
+
+/* ── Video scenes (full-bleed, same as portrait) ─── */
+function SceneCheers({t,videoRef}){
+  if(t>T.vidSitting.s+0.1)return null;
+  const rewAnimEnd=T.rewind.s+1.0;
+  const inRewind=t>=T.rewind.s&&t<rewAnimEnd;
+  const isGreyHold=t>=rewAnimEnd&&t<T.rewind.e;
+  const rewT=inRewind?clamp((t-T.rewind.s)/1.0,0,1):isGreyHold?1:0;
+  const howIn=t>=T.textHow.s?clamp((t-T.textHow.s)/0.4,0,1):0;
+  const howOut=t>=T.rewind.s?clamp((t-T.rewind.s)/0.3,0,1):0;
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:10}}>
+      <video ref={videoRef} src="twoguystalking.mov" playsInline muted style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',filter:`grayscale(${rewT*100}%) brightness(${1-rewT*.3})`}}/>
+      {t>=T.textHow.s&&t<T.rewind.e&&(
+        <div style={{position:'absolute',top:'50%',left:0,right:0,textAlign:'center',transform:'translateY(-50%)',opacity:howIn*(1-howOut)}}>
+          <div style={{fontWeight:600,fontSize:36,color:C.white,textShadow:'0 4px 24px rgba(0,0,0,.7)',fontStyle:'italic'}}>So how exactly did we end up here?</div>
+        </div>
+      )}
+      {t>=T.vidCheers.e&&!inRewind&&(
+        <div style={{position:'absolute',inset:0,background:isGreyHold?'rgba(0,0,0,0.18)':'rgba(0,0,0,0.12)'}}/>
+      )}
+    </div>
+  );
+}
+
+function SceneSitting({t,sittingRef}){
+  const visible=t>=T.vidSitting.s&&t<=T.vidSitting.e+0.5;
+  const lt=t-T.vidSitting.s,dur=T.vidSitting.e-T.vidSitting.s;
+  const zoomStart=dur-1.2;
+  const zoomProgress=clamp((lt-zoomStart)/1.2,0,1);
+  const zoom=1+ease.inQuad(zoomProgress)*7;
+  const exitF=zoomProgress>0.6?clamp((zoomProgress-0.6)/0.4,0,1):0;
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:20,overflow:'hidden',opacity:visible?1:0,pointerEvents:visible?'auto':'none'}}>
+      <video ref={sittingRef} src="sitting.mov" playsInline muted preload="auto" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transform:`scale(${zoom})`,transformOrigin:'50% 55%'}}/>
+      <div style={{position:'absolute',inset:0,background:`rgba(250,250,250,${exitF})`}}/>
+    </div>
+  );
+}
+
+function SceneFormTitle({t}){
+  if(t<T.formTitle.s||t>T.formTitle.e+0.3)return null;
+  const lt=t-T.formTitle.s,inT=clamp(lt/0.4,0,1),exitF=lt>0.5?clamp((lt-0.5)/0.3,0,1):0;
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,display:'flex',alignItems:'center',justifyContent:'center',opacity:1-exitF}}>
+      <div style={{opacity:inT,transform:`scale(${.85+ease.outBack(inT)*.15})`}}>
+        <div style={{fontWeight:900,fontSize:72,letterSpacing:'-.04em',color:C.dark,textAlign:'center'}}>Find Your <span style={{color:C.red}}>Place</span></div>
+      </div>
+    </div>
+  );
+}
+
+/* ── LANDSCAPE form: left side form, right side preview ── */
+function SceneForm({t}){
+  if(t<T.formFill.s||t>T.formSubmit.e+0.3)return null;
+  const lt=t-T.formFill.s,inT=clamp(lt/0.3,0,1);
+  const submitLt=t>=T.formSubmit.s?t-T.formSubmit.s:0;
+  const btnT=submitLt>0?clamp(submitLt/0.3,0,1):0;
+  const exitF=t>T.formSubmit.e-0.3?clamp((t-(T.formSubmit.e-0.3))/0.3,0,1):0;
+  const fields=[
+    {label:'Group Size?',value:'2 people',delay:0},
+    {label:'Budget per person?',value:'Under $800',delay:1.0},
+    {label:'Move-in?',value:'August 1st',delay:2.0},
+    {label:'What matters most?',value:'"Walking distance"\n"Near nightlife"',delay:3.0},
+  ];
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex'}}>
+      <div style={{flex:1,padding:'80px 56px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+        <div style={{fontWeight:900,fontSize:40,letterSpacing:'-.03em',color:C.dark,marginBottom:32}}>Find Your <span style={{color:C.red}}>Place</span></div>
+        {fields.map((f,i)=>{
+          const ft=lt-f.delay;const active=ft>=0&&ft<1;const done=ft>=0.8;
+          return(
+            <div key={i} style={{padding:'16px 20px',borderRadius:14,background:C.white,border:`2px solid ${active?C.red:done?C.green:'rgba(0,0,0,.08)'}`,marginBottom:12}}>
+              <div style={{fontSize:14,fontWeight:700,letterSpacing:'.08em',textTransform:'uppercase',color:C.gray,marginBottom:4}}>{f.label}</div>
+              {done||active?<div style={{fontSize:22,fontWeight:700,color:C.dark,whiteSpace:'pre-line'}}>{f.value}</div>:<div style={{height:24,borderRadius:6,background:'rgba(0,0,0,.04)'}}/>}
+            </div>
+          );
+        })}
+        <div style={{marginTop:20,textAlign:'center'}}>
+          <div style={{display:'inline-block',padding:'16px 40px',borderRadius:999,background:btnT>.5?C.red:'rgba(226,58,47,.15)',color:btnT>.5?C.white:C.red,fontWeight:800,fontSize:22,boxShadow:btnT>.5?'0 8px 24px rgba(226,58,47,.3)':'none'}}>Match me with places</div>
+        </div>
+      </div>
+      <div style={{flex:1,background:'linear-gradient(135deg,rgba(226,58,47,.04),rgba(226,58,47,.08))',display:'flex',alignItems:'center',justifyContent:'center',borderLeft:'1px solid rgba(0,0,0,.06)'}}>
+        <div style={{textAlign:'center',opacity:clamp(lt/0.5,0,1)}}>
+          <Logo size={100} color={C.red}/>
+          <div style={{marginTop:20,fontWeight:800,fontSize:28,color:C.dark,letterSpacing:'-.02em'}}>Your matches are<br/><span style={{color:C.red}}>loading...</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── LANDSCAPE cards: side by side ── */
+function SceneCards({t}){
+  if(t<T.cards.s||t>T.notSure.e+0.3)return null;
+  const lt=t-T.cards.s,inT=clamp(lt/0.3,0,1);
+  const nst=t>=T.notSure.s?clamp((t-T.notSure.s)/0.3,0,1):0;
+  const exitF=t>T.notSure.e-0.3?clamp((t-(T.notSure.e-0.3))/0.3,0,1):0;
+  const cards=[
+    {name:'The Lux on Delmar',hood:'Delmar Loop',price:'$780/mo',rating:'4.8',walk:'8 min',badge:true,delay:0.2},
+    {name:'Parkview Place',hood:'Skinker-DeBaliviere',price:'$740/mo',rating:'4.6',walk:'12 min',badge:false,delay:0.5},
+  ];
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF)}}>
+      <div style={{position:'absolute',top:80,left:56}}>
+        <div style={{fontWeight:800,fontSize:24,color:C.dark,marginBottom:8}}>Your matches</div>
+      </div>
+      <div style={{position:'absolute',top:130,left:56,right:56,bottom:80,display:'flex',gap:24,alignItems:'center'}}>
+        {cards.map((cd,i)=>{
+          const ct=clamp((lt-cd.delay)/0.5,0,1),ce=ease.outBack(ct);
+          return(
+            <div key={i} style={{flex:1,borderRadius:20,background:C.white,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,.08)',border:'1.5px solid rgba(0,0,0,.06)',opacity:ct,transform:`translateY(${(1-ce)*60}px)`,position:'relative'}}>
+              {cd.badge&&<div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'6px 12px',background:C.red,color:C.white,borderRadius:8,fontWeight:800,fontSize:12,letterSpacing:'.08em',textTransform:'uppercase'}}>TOP PICK</div>}
+              <div style={{width:'100%',height:240,background:'linear-gradient(135deg,#e8e0d8,#d4ccc4)'}}/>
+              <div style={{padding:'20px 24px'}}>
+                <div style={{fontWeight:800,fontSize:24,color:C.dark}}>{cd.name}</div>
+                <div style={{fontSize:16,color:C.gray,marginTop:2}}>{cd.hood}</div>
+                <div style={{display:'flex',alignItems:'center',gap:12,marginTop:10}}>
+                  <div style={{fontWeight:800,fontSize:26,color:C.dark}}>{cd.price}</div>
+                  <div style={{color:'#F59E0B',fontSize:16}}>★ <span style={{color:C.dark,fontWeight:700}}>{cd.rating}</span></div>
+                </div>
+                <div style={{marginTop:10,padding:'5px 12px',borderRadius:8,background:'rgba(226,58,47,.08)',display:'inline-block',fontSize:14,fontWeight:600,color:C.red}}>{cd.walk} walk to campus</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{position:'absolute',bottom:28,left:0,right:0,textAlign:'center',opacity:nst}}>
+        <div style={{display:'inline-block',padding:'14px 40px',borderRadius:999,border:'2px solid rgba(0,0,0,.12)',fontWeight:700,fontSize:20,color:C.gray}}>Not sure yet</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── LANDSCAPE chat: left chat, right card ── */
+function SceneChat({t}){
+  if(t<T.chat.s||t>T.listing.s+0.3)return null;
+  const lt=t-T.chat.s,inT=clamp(lt/0.3,0,1);
+  const exitF=t>T.listing.s-0.3?clamp((t-(T.listing.s-0.3))/0.3,0,1):0;
+  const bubbles=[
+    {from:'bot',text:'Would you spend $50/month more to have a gym in your building?',delay:0.3},
+    {from:'user',text:'yes, does it include parking?',delay:1.2},
+    {from:'bot',text:'Yes, utilities and parking included. We found the place for you.',delay:2.2},
+  ];
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex'}}>
+      <div style={{flex:1,padding:'60px 40px',display:'flex',flexDirection:'column'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:24}}>
+          <div style={{width:10,height:10,borderRadius:'50%',background:C.green}}/>
+          <div style={{fontWeight:800,fontSize:18,color:C.dark}}>Proximity Concierge</div>
+          <div style={{fontWeight:600,fontSize:13,color:C.green,letterSpacing:'.08em',textTransform:'uppercase'}}>REPLYING LIVE</div>
+        </div>
+        {bubbles.map((b,i)=>{
+          const bt=clamp((lt-b.delay)/0.4,0,1);
+          return(
+            <div key={i} style={{display:'flex',justifyContent:b.from==='bot'?'flex-start':'flex-end',marginBottom:12,opacity:bt,transform:`translateY(${(1-ease.outCubic(bt))*16}px)`}}>
+              <div style={{maxWidth:'85%',padding:'14px 18px',borderRadius:16,background:b.from==='bot'?C.white:C.red,color:b.from==='bot'?C.dark:C.white,fontSize:20,fontWeight:500,lineHeight:1.4,boxShadow:b.from==='bot'?'0 2px 8px rgba(0,0,0,.06)':'0 2px 8px rgba(226,58,47,.2)'}}>{b.text}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',borderLeft:'1px solid rgba(0,0,0,.06)'}}>
+        {lt>3.0&&(
+          <div style={{width:'80%',borderRadius:20,background:C.white,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,.1)',border:`2px solid ${C.red}`,opacity:clamp((lt-3)/0.4,0,1),transform:`translateY(${(1-ease.outBack(clamp((lt-3)/0.4,0,1)))*40}px)`}}>
+            <div style={{height:160,background:'linear-gradient(135deg,#e8e0d8,#d4ccc4)'}}/>
+            <div style={{padding:'16px 20px'}}>
+              <div style={{fontWeight:800,fontSize:22,color:C.dark}}>The Cortland on Forsyth</div>
+              <div style={{fontSize:16,color:C.gray,marginTop:4}}>$830/mo · Gym · Parking · Utilities incl.</div>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginTop:6}}><span style={{color:'#F59E0B',fontSize:16}}>★</span><span style={{fontWeight:700,fontSize:16,color:C.dark}}>4.9</span><span style={{fontSize:13,color:C.gray}}>· 12 reviews</span></div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── LANDSCAPE listing detail ── */
+function SceneListing({t}){
+  if(t<T.listing.s||t>T.tour.e+0.3)return null;
+  const lt=t-T.listing.s,inT=clamp(lt/0.5,0,1);
+  const tourLt=t>=T.tour.s?t-T.tour.s:0,confirmed=tourLt>0.6;
+  const exitF=t>T.tour.e-0.3?clamp((t-(T.tour.e-0.3))/0.3,0,1):0;
+  const amenities=['Furnished','In-unit laundry','Gym','Parking'];
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex'}}>
+      <div style={{flex:1,background:'linear-gradient(135deg,#ddd5cc,#c4bab0)',display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(0,0,0,.1)',fontSize:80}}>
+        <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor"><path d="M3 12l9-9 9 9M5 10v9a1 1 0 001 1h12a1 1 0 001-1v-9"/></svg>
+      </div>
+      <div style={{flex:1,padding:'48px 40px',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+        <div style={{fontWeight:900,fontSize:32,color:C.dark}}>The Cortland on Forsyth</div>
+        <div style={{fontSize:20,color:C.gray,marginTop:4}}>Skinker-DeBaliviere · $830/mo</div>
+        <div style={{display:'flex',alignItems:'center',gap:6,marginTop:10}}><span style={{color:'#F59E0B',fontSize:20}}>★</span><span style={{fontWeight:800,fontSize:20,color:C.dark}}>4.9</span><span style={{fontSize:16,color:C.gray}}>- 12 reviews</span></div>
+        <div style={{marginTop:12,fontSize:18,color:C.gray,lineHeight:1.5}}>Fully furnished units steps from the Loop with in-unit laundry and...</div>
+        <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
+          <div style={{padding:'5px 12px',borderRadius:8,background:'rgba(226,58,47,.08)',fontSize:14,fontWeight:600,color:C.red}}>6 min walk to campus</div>
+          <div style={{padding:'5px 12px',borderRadius:8,background:'rgba(0,0,0,.04)',fontSize:14,fontWeight:600,color:C.gray}}>2 min to shuttle</div>
+        </div>
+        <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
+          {amenities.map((a,i)=>{const at=clamp((lt-.5-i*.15)/.3,0,1);return <div key={i} style={{padding:'6px 14px',borderRadius:8,background:C.redTint,fontSize:14,fontWeight:700,color:C.red,opacity:at}}>{a}</div>;})}
+        </div>
+        <div style={{marginTop:10}}><div style={{display:'inline-block',padding:'5px 12px',borderRadius:8,background:'rgba(34,197,94,.1)',fontSize:14,fontWeight:700,color:C.green}}>Utilities Included</div></div>
+        <div style={{marginTop:24}}>
+          <div style={{textAlign:'center',padding:'16px 0',borderRadius:999,background:confirmed?C.green:C.red,color:C.white,fontWeight:800,fontSize:22,boxShadow:confirmed?'0 6px 20px rgba(34,197,94,.3)':'0 6px 20px rgba(226,58,47,.3)'}}>{confirmed?'✓ Tour Requested':'Request Tour'}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── LANDSCAPE CTA ── */
+function SceneCTA({t}){
+  if(t<T.cta.s)return null;
+  const lt=t-T.cta.s,logoT=clamp(lt/.5,0,1),tagT=clamp((lt-.4)/.5,0,1),btnT=clamp((lt-.9)/.5,0,1),freeT=clamp((lt-1.4)/.4,0,1);
+  const pulse=1+Math.sin(lt*4)*.015*clamp((lt-1.4)*2,0,1);
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,display:'flex',alignItems:'center',justifyContent:'center',gap:80}}>
+      <div style={{opacity:logoT,transform:`translateY(${(1-ease.outCubic(logoT))*30}px)`,display:'flex',flexDirection:'column',alignItems:'center',gap:16}}>
+        <Logo size={100} color={C.red}/>
+        <div style={{fontWeight:900,fontSize:56,letterSpacing:'-.04em',color:C.dark}}>proximity</div>
+      </div>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:24}}>
+        <div style={{textAlign:'center',opacity:tagT}}>
+          <div style={{fontWeight:800,fontSize:36,lineHeight:1.2,color:C.dark}}>Find your place.<br/><span style={{color:C.red}}>Skip the chaos.</span></div>
+        </div>
+        <div style={{opacity:btnT,transform:`scale(${.85+ease.outBack(btnT)*.15*pulse})`}}>
+          <div style={{padding:'20px 48px',background:C.red,color:C.white,fontWeight:800,fontSize:26,borderRadius:999,boxShadow:'0 12px 36px rgba(226,58,47,.35)'}}>useproximity.org/matchmaking</div>
+        </div>
+        <div style={{opacity:freeT,fontSize:15,fontWeight:700,letterSpacing:'.25em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── App (same orchestrator, 1920x1080 stage) ── */
+function App(){
+  const[started,setStarted]=React.useState(false);
+  const[t,setT]=React.useState(0);
+  const[done,setDone]=React.useState(false);
+  const[zoom,setZoom]=React.useState(1);
+  const vidRef=React.useRef(null),sitRef=React.useRef(null),sfxRef=React.useRef(null),firedRef=React.useRef(new Set());
+
+  React.useEffect(()=>{const m=()=>setZoom(Math.min(window.innerWidth/1920,window.innerHeight/1080));m();window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m);},[]);
+
+  React.useEffect(()=>{
+    if(!started||done)return;const sfx=sfxRef.current;if(!sfx)return;const fired=firedRef.current;
+    const fire=(k,time,fn)=>{if(t>=time&&!fired.has(k)){fired.add(k);fn();}};
+    fire('rewind',T.rewind.s,()=>sfx.rewindSound());
+    fire('f1',T.formFill.s+.1,()=>sfx.tick(1100));fire('f2',T.formFill.s+1.1,()=>sfx.tick(1100));fire('f3',T.formFill.s+2.1,()=>sfx.tick(1100));fire('f4',T.formFill.s+3.1,()=>sfx.tick(1100));
+    fire('fb',T.formSubmit.s+.1,()=>sfx.pop());fire('c1',T.cards.s+.3,()=>sfx.slideUp());fire('c2',T.cards.s+.6,()=>sfx.slideUp());
+    fire('ns',T.notSure.s+.1,()=>sfx.tick(800));fire('ch1',T.chat.s+.3,()=>sfx.ding(900));fire('ch2',T.chat.s+1.3,()=>sfx.ding(700));fire('ch3',T.chat.s+2.3,()=>sfx.ding(900));
+    fire('chc',T.chat.s+3.1,()=>sfx.whoosh());fire('lo',T.listing.s+.1,()=>sfx.whoosh('high'));fire('tr',T.tour.s+.1,()=>sfx.pop());fire('tc',T.tour.s+.7,()=>sfx.confirm());fire('ci',T.cta.s+.1,()=>sfx.thump());
+  },[t,started,done]);
+
+  React.useEffect(()=>{if(!started)return;const v=vidRef.current;if(!v)return;if(t>=T.vidCheers.s&&t<T.freeze.s){if(v.paused)try{v.play()}catch{};if(v.currentTime>5)v.pause();}else{if(!v.paused)v.pause();}},[t,started]);
+  const sitStartedRef=React.useRef(false);
+  React.useEffect(()=>{if(!started)return;const s=sitRef.current;if(!s)return;if(t>=T.vidSitting.s&&t<T.vidSitting.e){if(!sitStartedRef.current){s.currentTime=1.5;s.muted=false;try{s.play()}catch{s.muted=true;try{s.play()}catch{}}sitStartedRef.current=true;}if(s.currentTime>=5){s.pause();s.currentTime=5;}}else if(t>=T.vidSitting.e){if(!s.paused)s.pause();}},[t,started]);
+
+  React.useEffect(()=>{if(!started)return;let raf;const s=performance.now();const tick=n=>{const e=(n-s)/1000;setT(e);if(e>=TOTAL){setDone(true);return;}raf=requestAnimationFrame(tick);};raf=requestAnimationFrame(tick);return()=>cancelAnimationFrame(raf);},[started]);
+
+  const begin=async()=>{
+    if(!sfxRef.current)sfxRef.current=new SfxEngine();sfxRef.current.ensureCtx();try{await sfxRef.current.ctx.resume()}catch{};firedRef.current=new Set();
+    const v=vidRef.current;if(v){v.currentTime=0;v.muted=false;try{await v.play()}catch{v.muted=true;try{await v.play()}catch{}}}
+    setStarted(true);setDone(false);setT(0);
+  };
+  const restart=()=>{setStarted(false);setDone(false);setT(0);setTimeout(begin,60);};
+
+  const showChrome=started&&!done&&t>T.formTitle.s&&t<T.cta.s;
+  return(
+    <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'#000'}}>
+      <div style={{width:1920,height:1080,position:'relative',overflow:'hidden',zoom,background:t<T.formTitle.s?'#000':C.offWhite}}>
+        <Chrome visible={showChrome}/>
+        <SceneCheers t={t} videoRef={vidRef}/><SceneSitting t={t} sittingRef={sitRef}/>
+        <SceneFormTitle t={t}/><SceneForm t={t}/><SceneCards t={t}/><SceneChat t={t}/>
+        <SceneListing t={t}/><SceneCTA t={t}/>
+        {!started&&(
+          <div onClick={begin} style={{position:'absolute',inset:0,zIndex:500,background:'#0A0A0B',display:'grid',placeItems:'center',cursor:'pointer'}}>
+            <div style={{textAlign:'center',color:'#fff'}}>
+              <div style={{margin:'0 auto 24px'}}><Logo size={90} color={C.red}/></div>
+              <div style={{fontWeight:900,fontSize:52,letterSpacing:'-.04em'}}>proximity</div>
+              <div style={{marginTop:8,fontWeight:700,fontSize:16,letterSpacing:'.3em',textTransform:'uppercase',color:'rgba(255,255,255,.5)'}}>:30 spot · landscape · sound on</div>
+              <div style={{marginTop:36,width:80,height:80,borderRadius:'50%',background:C.red,display:'inline-flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+                <div style={{width:0,height:0,borderLeft:'22px solid #fff',borderTop:'14px solid transparent',borderBottom:'14px solid transparent',marginLeft:6}}/>
+                <span style={{position:'absolute',inset:0,borderRadius:'50%',background:C.red,animation:'pulse 1.8s ease-out infinite',zIndex:-1}}/>
+              </div>
+            </div>
+          </div>
+        )}
+        {done&&<div onClick={restart} style={{position:'absolute',inset:0,zIndex:500,display:'grid',placeItems:'end center',paddingBottom:40,cursor:'pointer'}}><div style={{padding:'12px 36px',background:'rgba(255,255,255,.1)',border:'1px solid rgba(255,255,255,.2)',backdropFilter:'blur(10px)',color:'#fff',borderRadius:999,fontWeight:700,fontSize:18,letterSpacing:'.15em',textTransform:'uppercase'}}>↻ tap to replay</div></div>}
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "proximity-reels",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npx remotion studio",
+    "build": "npx remotion render Reel1VariantA out/reel1-variant-a.mp4",
+    "build:dark": "npx remotion render Reel1VariantADark out/reel1-variant-a-dark.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.261",
+    "remotion": "4.0.261",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "framer-motion": "^11.15.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/react": "^18.3.0"
+  }
+}

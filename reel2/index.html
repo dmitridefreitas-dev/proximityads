@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Proximity — Founder Story</title>
+<link rel="icon" href="data:,"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0B0B0C; overflow: hidden; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+  #root { position: fixed; inset: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+
+const Easing = {
+  linear: (t) => t,
+  easeInQuad: (t) => t * t,
+  easeOutQuad: (t) => t * (2 - t),
+  easeInOutQuad: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+  easeInCubic: (t) => t * t * t,
+  easeOutCubic: (t) => (--t) * t * t + 1,
+  easeInOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1),
+  easeInQuart: (t) => t * t * t * t,
+  easeOutQuart: (t) => 1 - (--t) * t * t * t,
+  easeInOutQuart: (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t),
+  easeInExpo: (t) => (t === 0 ? 0 : Math.pow(2, 10 * (t - 1))),
+  easeOutExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+  easeInOutExpo: (t) => { if (t === 0) return 0; if (t === 1) return 1; if (t < 0.5) return 0.5 * Math.pow(2, 20 * t - 10); return 1 - 0.5 * Math.pow(2, -20 * t + 10); },
+  easeInSine: (t) => 1 - Math.cos((t * Math.PI) / 2),
+  easeOutSine: (t) => Math.sin((t * Math.PI) / 2),
+  easeInOutSine: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
+  easeOutBack: (t) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+  easeInBack: (t) => { const c1 = 1.70158, c3 = c1 + 1; return c3 * t * t * t - c1 * t * t; },
+  easeInOutBack: (t) => { const c1 = 1.70158, c2 = c1 * 1.525; return t < 0.5 ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2 : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2; },
+  easeOutElastic: (t) => { const c4 = (2 * Math.PI) / 3; if (t === 0) return 0; if (t === 1) return 1; return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1; },
+};
+
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+function interpolate(input, output, ease = Easing.linear) {
+  return (t) => {
+    if (t <= input[0]) return output[0];
+    if (t >= input[input.length - 1]) return output[output.length - 1];
+    for (let i = 0; i < input.length - 1; i++) {
+      if (t >= input[i] && t <= input[i + 1]) {
+        const span = input[i + 1] - input[i];
+        const local = span === 0 ? 0 : (t - input[i]) / span;
+        const easeFn = Array.isArray(ease) ? (ease[i] || Easing.linear) : ease;
+        const eased = easeFn(local);
+        return output[i] + (output[i + 1] - output[i]) * eased;
+      }
+    }
+    return output[output.length - 1];
+  };
+}
+
+function animate({ from = 0, to = 1, start = 0, end = 1, ease = Easing.easeInOutCubic }) {
+  return (t) => { if (t <= start) return from; if (t >= end) return to; const local = (t - start) / (end - start); return from + (to - from) * ease(local); };
+}
+
+const TimelineContext = React.createContext({ time: 0, duration: 10, playing: false });
+const useTime = () => React.useContext(TimelineContext).time;
+const useTimeline = () => React.useContext(TimelineContext);
+const SpriteContext = React.createContext({ localTime: 0, progress: 0, duration: 0 });
+const useSprite = () => React.useContext(SpriteContext);
+
+function Sprite({ start = 0, end = Infinity, children, keepMounted = false }) {
+  const { time } = useTimeline();
+  const visible = time >= start && time <= end;
+  if (!visible && !keepMounted) return null;
+  const duration = end - start;
+  const localTime = Math.max(0, time - start);
+  const progress = duration > 0 && isFinite(duration) ? clamp(localTime / duration, 0, 1) : 0;
+  const value = { localTime, progress, duration, visible };
+  return (<SpriteContext.Provider value={value}>{typeof children === 'function' ? children(value) : children}</SpriteContext.Provider>);
+}
+
+function Stage({ width = 1080, height = 1920, duration = 10, background = '#0B0B0C', loop = true, children }) {
+  const [time, setTime] = React.useState(0);
+  const [playing, setPlaying] = React.useState(true);
+  const [zoomLevel, setZoomLevel] = React.useState(1);
+  const rafRef = React.useRef(null);
+  const lastTsRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const measure = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const scaleX = vw / width;
+      const scaleY = vh / height;
+      setZoomLevel(Math.min(scaleX, scaleY));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [width, height]);
+
+  React.useEffect(() => {
+    if (!playing) { lastTsRef.current = null; return; }
+    const step = (ts) => {
+      if (lastTsRef.current == null) lastTsRef.current = ts;
+      const dt = (ts - lastTsRef.current) / 1000;
+      lastTsRef.current = ts;
+      setTime((t) => { let next = t + dt; if (next >= duration) { if (loop) next = next % duration; else { next = duration; setPlaying(false); } } return next; });
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); lastTsRef.current = null; };
+  }, [playing, duration, loop]);
+
+  const ctxValue = React.useMemo(() => ({ time, duration, playing, setTime, setPlaying }), [time, duration, playing]);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background }}>
+      <div style={{ width, height, background, position: 'relative', overflow: 'hidden', zoom: zoomLevel }}>
+        <TimelineContext.Provider value={ctxValue}>{children}</TimelineContext.Provider>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// founder scenes
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PROX2 = {
+  red: '#E5322B', redDk: '#B81F19', black: '#0B0B0C', ink: '#16161A',
+  paper: '#F7F3EE', cream: '#EFE9E0', mute: '#7A7570', white: '#FFFFFF',
+};
+const FONT_DISP2 = '"Plus Jakarta Sans", "Inter", system-ui, sans-serif';
+const FONT_MONO2 = '"JetBrains Mono", ui-monospace, monospace';
+
+function ProxLogo2({ size = 100, color = PROX2.red, bg = PROX2.black }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" style={{ display: 'block' }}>
+      <circle cx="50" cy="50" r="46" stroke={color} strokeWidth="5"/>
+      <circle cx="50" cy="50" r="32" stroke={color} strokeWidth="4"/>
+      <rect x="48" y="0" width="4" height="10" fill={color}/>
+      <rect x="48" y="90" width="4" height="10" fill={color}/>
+      <rect x="0" y="48" width="10" height="4" fill={color}/>
+      <rect x="90" y="48" width="10" height="4" fill={color}/>
+      <path d="M50 28 L68 44 L68 66 L32 66 L32 44 Z" fill={color}/>
+      <rect x="46" y="54" width="8" height="12" fill={bg}/>
+    </svg>
+  );
+}
+
+function BG2() {
+  const t = useTime();
+  const drift = (t * 6) % 100;
+  return (
+    <>
+      <div style={{ position: 'absolute', inset: 0, background: PROX2.black }}/>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(70% 60% at 50% 28%, rgba(229,50,43,0.34) 0%, rgba(229,50,43,0.22) 20%, rgba(229,50,43,0.12) 40%, rgba(229,50,43,0.05) 60%, rgba(229,50,43,0) 80%)' }}/>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(55% 45% at 78% 88%, rgba(229,50,43,0.20) 0%, rgba(229,50,43,0.12) 25%, rgba(229,50,43,0.05) 50%, rgba(0,0,0,0) 75%)' }}/>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(50% 40% at 22% 65%, rgba(229,50,43,0.08) 0%, rgba(229,50,43,0.03) 40%, rgba(0,0,0,0) 70%)' }}/>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 80px)', transform: `translateY(${drift}px)`, opacity: 0.6 }}/>
+      <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(130% 90% at 50% 50%, transparent 40%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0.55) 100%)' }}/>
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></svg>
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.035, filter: 'url(#noise)', background: 'transparent', mixBlendMode: 'overlay' }}/>
+    </>
+  );
+}
+
+function BrowserTab({ favicon, faviconColor, label, active, dim, narrow }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', width: narrow ? 60 : (active ? 230 : 180), height: 38, boxSizing: 'border-box', background: active ? '#2A2A30' : 'transparent', borderTopLeftRadius: 8, borderTopRightRadius: 8, borderRight: active ? 'none' : '1px solid rgba(255,255,255,0.06)', flexShrink: 0, opacity: dim ? 0.55 : 1 }}>
+      <div style={{ width: 14, height: 14, borderRadius: 3, background: faviconColor || '#888', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontFamily: FONT_DISP2, fontWeight: 800, fontSize: 9 }}>{favicon}</div>
+      {!narrow && (<span style={{ fontFamily: FONT_DISP2, fontSize: 13, color: active ? PROX2.paper : 'rgba(247,243,238,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontWeight: 500 }}>{label}</span>)}
+      {!narrow && (<span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, lineHeight: 1 }}>×</span>)}
+    </div>
+  );
+}
+
+function FounderScene1() {
+  const { localTime, duration } = useSprite();
+  const browserT = clamp(localTime / 0.5, 0, 1);
+  const browserEased = Easing.easeOutCubic(browserT);
+  const headT = clamp((localTime - 0.6) / 0.5, 0, 1);
+  const headEased = Easing.easeOutCubic(headT);
+  const subT = clamp((localTime - 1.6) / 0.5, 0, 1);
+  const counterT = clamp((localTime - 1.0) / 0.5, 0, 1);
+  const exitFade = localTime > duration - 0.4 ? clamp((localTime - (duration - 0.4)) / 0.4, 0, 1) : 0;
+  const tabs = [
+    { fav: 'Z', color: '#1F6BFF', label: 'St. Louis 2BR Apartments — Zillow' },
+    { fav: 'f', color: '#1877F2', label: 'WashU Housing 2026 — Facebook' },
+    { fav: 'A', color: '#0A8050', label: 'Apartments near Clayton, MO' },
+    { fav: 'c', color: '#7B2A9E', label: 'craigslist › apts / housing' },
+    { fav: 'R', color: '#FF4500', label: 'r/WUSTL — anyone know a...' },
+    { fav: 'T', color: '#5C3FBC', label: 'Trulia — 63130 listings' },
+    { fav: 'G', color: '#4285F4', label: 'apartments near washu' },
+    { fav: 'I', color: '#E1306C', label: 'DM with @stlloft.rentals' },
+  ];
+  const tabCount = Math.floor(11 + counterT * 36);
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity: 1 - exitFade }}>
+      <div style={{ position: 'absolute', left: 30, right: 30, top: 620, height: 1180, background: '#1A1A1F', borderRadius: 14, boxShadow: '0 30px 80px rgba(0,0,0,0.6)', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', opacity: browserEased, transform: `translateY(${(1 - browserEased) * 30}px) scale(${0.96 + browserEased * 0.04})` }}>
+        <div style={{ height: 38, background: '#0F0F12', display: 'flex', alignItems: 'flex-end', paddingLeft: 16, paddingRight: 12, gap: 8, position: 'relative' }}>
+          <div style={{ position: 'absolute', left: 14, top: 13, display: 'flex', gap: 8 }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#FF5F57' }}/>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#FEBC2E' }}/>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#28C840' }}/>
+          </div>
+          <div style={{ display: 'flex', marginLeft: 80, gap: 0, overflow: 'hidden', alignItems: 'flex-end' }}>
+            {tabs.slice(0, 5).map((t, i) => (<BrowserTab key={i} favicon={t.fav} faviconColor={t.color} label={t.label} active={i === 0} dim={i > 2}/>))}
+            {tabs.slice(5).map((t, i) => (<BrowserTab key={'n'+i} favicon={t.fav} faviconColor={t.color} narrow dim/>))}
+            <div style={{ padding: '8px 10px', height: 38, boxSizing: 'border-box', fontFamily: FONT_MONO2, fontSize: 13, fontWeight: 700, color: 'rgba(247,243,238,0.55)', display: 'flex', alignItems: 'center' }}>+{Math.max(0, tabCount - 8)}</div>
+          </div>
+        </div>
+        <div style={{ height: 50, background: '#2A2A30', display: 'flex', alignItems: 'center', gap: 12, padding: '0 18px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', gap: 14, color: 'rgba(247,243,238,0.5)', fontSize: 18 }}><span>←</span><span>→</span><span>↻</span></div>
+          <div style={{ flex: 1, height: 30, borderRadius: 15, background: '#1A1A1F', display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px', fontFamily: FONT_MONO2, fontSize: 14, color: 'rgba(247,243,238,0.7)' }}>
+            <span style={{ color: PROX2.red, fontSize: 12 }}>🔒</span>
+            <span>zillow.com/st-louis-mo/apartments/</span>
+          </div>
+        </div>
+        <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ fontFamily: FONT_DISP2, fontWeight: 700, fontSize: 26, color: PROX2.paper, marginBottom: 6 }}>312 apartments in St. Louis, MO</div>
+          {[
+            { price: '$2,400/mo', addr: '4920 Pershing Ave #2B', meta: '2 bd · 1 ba · 850 sqft', tag: 'No reviews', img: 'assets/listing-1.avif' },
+            { price: '$1,950/mo', addr: '6112 Kingsbury Pl', meta: 'Studio · 1 ba · 420 sqft', tag: 'Posted 2024', img: 'assets/exterior-1.avif' },
+            { price: '$3,100/mo', addr: '720 Demun Ave #4', meta: '3 bd · 2 ba · 1100 sqft', tag: 'Off-market', img: 'assets/exterior-2.avif' },
+            { price: '$1,750/mo', addr: '5079 Westminster Pl', meta: '1 bd · 1 ba · 600 sqft', tag: 'Stale', img: 'assets/listing-2.avif' },
+            { price: '$2,150/mo', addr: '6040 Pershing Ave', meta: '2 bd · 1 ba · 780 sqft', tag: 'No reviews', img: 'assets/listing-3.avif' },
+            { price: '$1,650/mo', addr: '716 Westgate Ave', meta: '1 bd · 1 ba · 540 sqft', tag: 'Stale', img: 'assets/exterior-3.avif' },
+          ].map((r, i) => (
+            <div key={i} style={{ display: 'flex', gap: 20, alignItems: 'center', padding: 18, background: '#222226', borderRadius: 14, border: '1px solid rgba(255,255,255,0.04)' }}>
+              <img src={r.img} alt="" style={{ width: 140, height: 110, borderRadius: 10, objectFit: 'cover', flexShrink: 0, display: 'block' }}/>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: FONT_DISP2, fontWeight: 800, fontSize: 28, color: PROX2.paper, letterSpacing: '-0.02em' }}>{r.price}</div>
+                <div style={{ fontFamily: FONT_DISP2, fontSize: 22, fontWeight: 600, color: 'rgba(247,243,238,0.85)', marginTop: 4 }}>{r.addr}</div>
+                <div style={{ fontFamily: FONT_MONO2, fontSize: 16, color: 'rgba(247,243,238,0.55)', marginTop: 4, fontWeight: 500 }}>{r.meta}</div>
+              </div>
+              <div style={{ fontFamily: FONT_MONO2, fontSize: 14, fontWeight: 700, color: '#ff7a72', padding: '8px 14px', background: 'rgba(229,50,43,0.18)', borderRadius: 6, textTransform: 'uppercase', letterSpacing: '0.1em', flexShrink: 0 }}>{r.tag}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ position: 'absolute', right: 50, top: 590, opacity: counterT, transform: `scale(${0.7 + counterT * 0.3}) rotate(6deg)` }}>
+        <div style={{ padding: '14px 24px', background: PROX2.red, color: PROX2.paper, borderRadius: 12, fontFamily: FONT_DISP2, fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em', boxShadow: '0 12px 30px rgba(229,50,43,0.5)' }}>{tabCount} tabs</div>
+      </div>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 220, opacity: headT, transform: `translateY(${(1 - headEased) * 30}px)` }}>
+        <div style={{ fontFamily: FONT_MONO2, fontSize: 22, letterSpacing: '0.32em', textTransform: 'uppercase', color: PROX2.red, fontWeight: 700, marginBottom: 28 }}>tab #47 —</div>
+        <div style={{ fontFamily: FONT_DISP2, fontSize: 110, fontWeight: 800, lineHeight: 0.92, letterSpacing: '-0.04em', color: PROX2.paper }}>You've got<br/><span style={{ color: PROX2.red }}>47 tabs</span> open.</div>
+        <div style={{ marginTop: 28, fontFamily: FONT_DISP2, fontSize: 56, fontWeight: 600, lineHeight: 1.1, letterSpacing: '-0.02em', color: 'rgba(247,243,238,0.7)', opacity: subT, transform: `translateY(${(1 - subT) * 16}px)` }}>Still no apartment.</div>
+      </div>
+    </div>
+  );
+}
+
+function FounderScene2() {
+  const { localTime, duration } = useSprite();
+  const headT = clamp(localTime / 0.5, 0, 1);
+  const headEased = Easing.easeOutCubic(headT);
+  const photoT = clamp((localTime - 0.4) / 0.6, 0, 1);
+  const photoEased = Easing.easeOutCubic(photoT);
+  const nameT = clamp((localTime - 0.9) / 0.5, 0, 1);
+  const nameEased = Easing.easeOutCubic(nameT);
+  const quoteT = clamp((localTime - 1.4) / 0.6, 0, 1);
+  const exitFade = localTime > duration - 0.4 ? clamp((localTime - (duration - 0.4)) / 0.4, 0, 1) : 0;
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity: 1 - exitFade }}>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 220, textAlign: 'center', fontFamily: FONT_MONO2, fontSize: 22, letterSpacing: '0.32em', textTransform: 'uppercase', color: PROX2.red, fontWeight: 700, opacity: headT, transform: `translateY(${(1 - headEased) * 16}px)` }}>— meet the founder —</div>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 290, textAlign: 'center', opacity: headT, transform: `translateY(${(1 - headEased) * 24}px)` }}>
+        <div style={{ fontFamily: FONT_DISP2, fontSize: 86, fontWeight: 800, lineHeight: 0.96, letterSpacing: '-0.035em', color: PROX2.paper }}>So a WashU<br/>sophomore<br/><span style={{ color: PROX2.red }}>built it himself.</span></div>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 880, display: 'flex', justifyContent: 'center', opacity: photoT, transform: `scale(${0.85 + photoEased * 0.15})` }}>
+        <div style={{ position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: -12, borderRadius: '50%', border: `4px solid ${PROX2.red}`, opacity: 0.8 }}/>
+          <img src="assets/flicker.avif" alt="Ben Flicker" style={{ width: 360, height: 360, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 20px 60px rgba(229,50,43,0.4)', display: 'block' }}/>
+        </div>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 1290, textAlign: 'center', opacity: nameT, transform: `translateY(${(1 - nameEased) * 16}px)` }}>
+        <div style={{ fontFamily: FONT_DISP2, fontSize: 64, fontWeight: 800, letterSpacing: '-0.025em', color: PROX2.paper, marginBottom: 12 }}>Ben Flicker</div>
+        <div style={{ fontFamily: FONT_MONO2, fontSize: 22, letterSpacing: '0.28em', textTransform: 'uppercase', color: PROX2.red, fontWeight: 700 }}>founder · WashU '28</div>
+      </div>
+      <div style={{ position: 'absolute', left: 100, right: 100, top: 1480, textAlign: 'center', opacity: quoteT, transform: `translateY(${(1 - Easing.easeOutCubic(quoteT)) * 16}px)` }}>
+        <div style={{ fontFamily: FONT_DISP2, fontSize: 32, fontWeight: 500, fontStyle: 'italic', lineHeight: 1.35, letterSpacing: '-0.01em', color: 'rgba(247,243,238,0.78)' }}>"I was bouncing between Zillow,<br/>Facebook groups, and sketchy<br/>landlord sites. So I built the thing<br/>I wished existed."</div>
+      </div>
+    </div>
+  );
+}
+
+function PropertyCard({ delay, localTime, image, price, addr, beds, rating }) {
+  const t = clamp((localTime - delay) / 0.5, 0, 1);
+  const eased = Easing.easeOutCubic(t);
+  return (
+    <div style={{ width: 440, height: 520, borderRadius: 24, background: PROX2.paper, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.45)', opacity: t, transform: `translateY(${(1 - eased) * 40}px) scale(${0.94 + eased * 0.06})` }}>
+      <div style={{ width: '100%', height: 320, background: PROX2.ink, position: 'relative', overflow: 'hidden' }}>
+        <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}/>
+        <div style={{ position: 'absolute', top: 14, left: 14, padding: '6px 12px', background: PROX2.red, color: PROX2.paper, borderRadius: 999, fontFamily: FONT_MONO2, fontSize: 14, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>{rating}</div>
+      </div>
+      <div style={{ flex: 1, padding: '20px 24px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div style={{ fontFamily: FONT_DISP2, fontWeight: 800, fontSize: 38, letterSpacing: '-0.025em', color: PROX2.ink, lineHeight: 1 }}>{price}</div>
+        <div style={{ marginTop: 10, fontFamily: FONT_DISP2, fontSize: 22, fontWeight: 600, color: PROX2.ink, letterSpacing: '-0.01em' }}>{addr}</div>
+        <div style={{ marginTop: 6, fontFamily: FONT_MONO2, fontSize: 16, letterSpacing: '0.1em', textTransform: 'uppercase', color: PROX2.mute, fontWeight: 600 }}>{beds}</div>
+      </div>
+    </div>
+  );
+}
+
+function FounderScene3() {
+  const { localTime, duration } = useSprite();
+  const headT = clamp(localTime / 0.5, 0, 1);
+  const headEased = Easing.easeOutCubic(headT);
+  const exitFade = localTime > duration - 0.4 ? clamp((localTime - (duration - 0.4)) / 0.4, 0, 1) : 0;
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity: 1 - exitFade }}>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 220, textAlign: 'center', opacity: headT, transform: `translateY(${(1 - headEased) * 24}px)` }}>
+        <div style={{ fontFamily: FONT_MONO2, fontSize: 22, letterSpacing: '0.32em', textTransform: 'uppercase', color: PROX2.red, fontWeight: 700, marginBottom: 24 }}>79+ verified listings —</div>
+        <div style={{ fontFamily: FONT_DISP2, fontSize: 92, fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.04em', color: PROX2.paper }}>Real places.<br/><span style={{ color: PROX2.red }}>Real reviews.</span></div>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 740, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 440px)', gridTemplateRows: 'repeat(2, 520px)', gap: 28 }}>
+          <PropertyCard delay={0.3} localTime={localTime} image="assets/listing-1.avif" price="$1,750/mo" addr="6040 Pershing Ave" beds="2 bd · walk to campus" rating="★ 4.9"/>
+          <PropertyCard delay={0.5} localTime={localTime} image="assets/exterior-1.avif" price="$2,200/mo" addr="5079 Westminster Pl" beds="3 bd · loop shuttle" rating="★ 4.8"/>
+          <PropertyCard delay={0.7} localTime={localTime} image="assets/exterior-2.avif" price="$1,400/mo" addr="712 Demun Ave" beds="1 bd · pet-friendly" rating="★ 4.7"/>
+          <PropertyCard delay={0.9} localTime={localTime} image="assets/interior-1.avif" price="$1,950/mo" addr="6112 Kingsbury Pl" beds="studio · furnished" rating="★ 5.0"/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FounderScene4() {
+  const { localTime } = useSprite();
+  const wmT = clamp(localTime / 0.5, 0, 1);
+  const headT = clamp((localTime - 0.4) / 0.5, 0, 1);
+  const ctaT = clamp((localTime - 0.9) / 0.5, 0, 1);
+  const ctaEased = Easing.easeOutBack(ctaT);
+  const urlT = clamp((localTime - 1.3) / 0.4, 0, 1);
+  const pulse = 1 + Math.sin(localTime * 4) * 0.015 * clamp((localTime - 1.4) * 2, 0, 1);
+  return (
+    <div style={{ position: 'absolute', inset: 0 }}>
+      <div style={{ position: 'absolute', top: 240, left: 0, right: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, opacity: wmT, transform: `translateY(${(1 - Easing.easeOutCubic(wmT)) * 30}px)` }}>
+        <ProxLogo2 size={170} bg={PROX2.black}/>
+        <div style={{ fontFamily: FONT_DISP2, fontWeight: 800, fontSize: 84, letterSpacing: '-0.035em', color: PROX2.paper, lineHeight: 1 }}>Proximity</div>
+      </div>
+      <div style={{ position: 'absolute', top: 760, left: 80, right: 80, textAlign: 'center', opacity: headT, transform: `translateY(${(1 - Easing.easeOutCubic(headT)) * 24}px)` }}>
+        <div style={{ fontFamily: FONT_DISP2, fontSize: 100, fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.04em', color: PROX2.paper }}>Find your<br/><span style={{ color: PROX2.red }}>place.</span></div>
+        <div style={{ marginTop: 28, fontFamily: FONT_DISP2, fontSize: 36, fontWeight: 500, letterSpacing: '-0.01em', color: 'rgba(247,243,238,0.7)' }}>Stop scrolling. Start living.</div>
+      </div>
+      <div style={{ position: 'absolute', top: 1300, left: 0, right: 0, display: 'flex', justifyContent: 'center', opacity: ctaT, transform: `scale(${0.85 + ctaEased * 0.15 * pulse})` }}>
+        <div style={{ padding: '36px 70px', background: PROX2.red, color: PROX2.paper, fontFamily: FONT_DISP2, fontWeight: 800, fontSize: 52, letterSpacing: '-0.02em', borderRadius: 999, boxShadow: '0 20px 60px rgba(229,50,43,0.45), 0 0 0 6px rgba(229,50,43,0.12)', display: 'inline-flex', alignItems: 'center', gap: 22 }}>
+          Start your search
+          <div style={{ width: 52, height: 52, borderRadius: '50%', background: PROX2.paper, color: PROX2.red, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 900 }}>→</div>
+        </div>
+      </div>
+      <div style={{ position: 'absolute', bottom: 200, left: 0, right: 0, textAlign: 'center', opacity: urlT, transform: `translateY(${(1 - Easing.easeOutCubic(urlT)) * 18}px)` }}>
+        <div style={{ fontFamily: FONT_MONO2, fontSize: 38, fontWeight: 600, letterSpacing: '0.04em', color: PROX2.paper }}>useproximity.org</div>
+        <div style={{ marginTop: 14, fontFamily: FONT_MONO2, fontSize: 18, fontWeight: 700, letterSpacing: '0.32em', textTransform: 'uppercase', color: 'rgba(247,243,238,0.5)' }}>link in bio</div>
+      </div>
+    </div>
+  );
+}
+
+const FOUNDER_TOTAL = 14;
+function FounderReel() {
+  return (
+    <>
+      <BG2/>
+      <Sprite start={0}    end={3.5}>          <FounderScene1/> </Sprite>
+      <Sprite start={3.5}  end={7.0}>          <FounderScene2/> </Sprite>
+      <Sprite start={7.0}  end={10.5}>         <FounderScene3/> </Sprite>
+      <Sprite start={10.5} end={FOUNDER_TOTAL}><FounderScene4/> </Sprite>
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <Stage width={1080} height={1920} duration={FOUNDER_TOTAL} background="#0B0B0C">
+    <FounderReel/>
+  </Stage>
+);
+</script>
+</body>
+</html>

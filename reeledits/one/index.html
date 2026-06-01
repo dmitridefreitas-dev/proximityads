@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Proximity — Reel 1: 5 Tabs</title>
+<link rel="icon" href="data:,"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#FAFAFA}
+body{font-family:'Inter',system-ui,sans-serif}
+#root{position:fixed;inset:0}
+@keyframes pulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.6);opacity:0}100%{transform:scale(1.6);opacity:0}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="text/babel">
+
+const C = {
+  red:'#E23A2F', white:'#FFFFFF', offWhite:'#FAFAFA', redTint:'#FBE6E4',
+  dark:'#0A0A0A', gray:'#555555', black:'#000000', green:'#22C55E',
+};
+
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const ease = {
+  outCubic: t=>(--t)*t*t+1,
+  outBack: t=>{const c=1.70158,d=c+1;return 1+d*Math.pow(t-1,3)+c*Math.pow(t-1,2)},
+  outQuad: t=>t*(2-t),
+  inOutCubic: t=>t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1,
+  outExpo: t=>t===1?1:1-Math.pow(2,-10*t),
+};
+
+/* ── SFX Engine ────────────────────────────────── */
+class SfxEngine {
+  constructor(){this.ctx=null;this.gains={master:null};this.ambientNodes=[];}
+  ensureCtx(){
+    if(this.ctx)return;
+    this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    this.gains.master=this.ctx.createGain();
+    this.gains.master.gain.value=0.6;
+    this.gains.master.connect(this.ctx.destination);
+  }
+  startAmbient(duration=16){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    /* Warm pad: layered detuned sines with slow LFO for movement */
+    [130.81,196,261.63,329.63].forEach((freq,i)=>{
+      const o=c.createOscillator(),g=c.createGain(),f=c.createBiquadFilter();
+      o.type='sine';o.frequency.value=freq;
+      /* Subtle detune for warmth */
+      o.detune.value=(i-1.5)*6;
+      f.type='lowpass';f.frequency.value=800;f.Q.value=0.5;
+      /* Fade in over 1s, sustain, fade out over 1.5s */
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(0.035,now+1);
+      g.gain.setValueAtTime(0.035,now+duration-2);
+      g.gain.linearRampToValueAtTime(0,now+duration);
+      o.connect(f);f.connect(g);g.connect(this.gains.master);
+      o.start(now);o.stop(now+duration);
+      this.ambientNodes.push(o);
+    });
+    /* Soft filtered noise bed for texture */
+    const buf=c.createBuffer(1,c.sampleRate*duration,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const s=c.createBufferSource(),lp=c.createBiquadFilter(),gn=c.createGain();
+    s.buffer=buf;lp.type='lowpass';lp.frequency.value=400;lp.Q.value=0.3;
+    gn.gain.setValueAtTime(0,now);gn.gain.linearRampToValueAtTime(0.02,now+1);
+    gn.gain.setValueAtTime(0.02,now+duration-2);gn.gain.linearRampToValueAtTime(0,now+duration);
+    s.connect(lp);lp.connect(gn);gn.connect(this.gains.master);s.start(now);
+    this.ambientNodes.push(s);
+  }
+  whoosh(pitch='mid'){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const buf=c.createBuffer(1,c.sampleRate*0.12,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.03));
+    const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
+    s.buffer=buf;f.type='bandpass';
+    f.frequency.value=pitch==='high'?4000:pitch==='low'?800:2000;f.Q.value=1.2;
+    g.gain.setValueAtTime(0.011,now);g.gain.exponentialRampToValueAtTime(0.0001,now+0.1);
+    s.connect(f);f.connect(g);g.connect(this.gains.master);s.start(now);
+  }
+  snap(){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const buf=c.createBuffer(1,c.sampleRate*0.04,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.006));
+    const s=c.createBufferSource(),hp=c.createBiquadFilter(),g=c.createGain();
+    s.buffer=buf;hp.type='highpass';hp.frequency.value=3000;hp.Q.value=0.7;
+    g.gain.setValueAtTime(0.018,now);g.gain.exponentialRampToValueAtTime(0.0001,now+0.04);
+    s.connect(hp);hp.connect(g);g.connect(this.gains.master);s.start(now);
+  }
+  swipe(){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const buf=c.createBuffer(1,c.sampleRate*0.08,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.02));
+    const s=c.createBufferSource(),bp=c.createBiquadFilter(),g=c.createGain();
+    s.buffer=buf;bp.type='bandpass';
+    bp.frequency.setValueAtTime(1500,now);bp.frequency.exponentialRampToValueAtTime(5000,now+0.06);bp.Q.value=0.8;
+    g.gain.setValueAtTime(0.009,now);g.gain.exponentialRampToValueAtTime(0.0001,now+0.07);
+    s.connect(bp);bp.connect(g);g.connect(this.gains.master);s.start(now);
+  }
+  tick(freq=1100){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.value=freq;
+    g.gain.setValueAtTime(0.04,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.15);
+    o.connect(g);g.connect(this.gains.master);o.start(now);o.stop(now+0.15);
+  }
+  pop(){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.setValueAtTime(500,now);o.frequency.exponentialRampToValueAtTime(250,now+0.15);
+    g.gain.setValueAtTime(0.05,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.2);
+    o.connect(g);g.connect(this.gains.master);o.start(now);o.stop(now+0.2);
+    const o2=c.createOscillator(),g2=c.createGain();
+    o2.type='sine';o2.frequency.value=350;
+    g2.gain.setValueAtTime(0.015,now);g2.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+    o2.connect(g2);g2.connect(this.gains.master);o2.start(now);o2.stop(now+0.3);
+  }
+  thump(){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.setValueAtTime(90,now);o.frequency.exponentialRampToValueAtTime(30,now+0.3);
+    g.gain.setValueAtTime(0.075,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.35);
+    o.connect(g);g.connect(this.gains.master);o.start(now);o.stop(now+0.35);
+    const buf=c.createBuffer(1,c.sampleRate*0.06,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.02));
+    const s=c.createBufferSource(),gn=c.createGain();
+    s.buffer=buf;gn.gain.setValueAtTime(0.025,now);gn.gain.exponentialRampToValueAtTime(0.001,now+0.06);
+    s.connect(gn);gn.connect(this.gains.master);s.start(now);
+  }
+  ding(freq=880){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.value=freq;
+    g.gain.setValueAtTime(0.04,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.6);
+    o.connect(g);g.connect(this.gains.master);o.start(now);o.stop(now+0.6);
+    const o2=c.createOscillator(),g2=c.createGain();
+    o2.type='sine';o2.frequency.value=freq*2;
+    g2.gain.setValueAtTime(0.01,now);g2.gain.exponentialRampToValueAtTime(0.001,now+0.4);
+    o2.connect(g2);g2.connect(this.gains.master);o2.start(now);o2.stop(now+0.4);
+  }
+  impact(){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.setValueAtTime(60,now);o.frequency.exponentialRampToValueAtTime(25,now+0.2);
+    g.gain.setValueAtTime(0.075,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+    o.connect(g);g.connect(this.gains.master);o.start(now);o.stop(now+0.3);
+    const buf=c.createBuffer(1,c.sampleRate*0.1,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.03));
+    const s=c.createBufferSource(),gn=c.createGain();
+    s.buffer=buf;gn.gain.setValueAtTime(0.025,now);gn.gain.exponentialRampToValueAtTime(0.001,now+0.1);
+    s.connect(gn);gn.connect(this.gains.master);s.start(now);
+  }
+  riser(dur=1.5){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const buf=c.createBuffer(1,c.sampleRate*dur,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const s=c.createBufferSource(),lp=c.createBiquadFilter(),g=c.createGain();
+    s.buffer=buf;lp.type='bandpass';
+    lp.frequency.setValueAtTime(200,now);lp.frequency.exponentialRampToValueAtTime(3000,now+dur);lp.Q.value=1.5;
+    g.gain.setValueAtTime(0.003,now);g.gain.linearRampToValueAtTime(0.03,now+dur*0.8);g.gain.linearRampToValueAtTime(0,now+dur);
+    s.connect(lp);lp.connect(g);g.connect(this.gains.master);s.start(now);
+  }
+  slideUp(){
+    this.ensureCtx();const c=this.ctx,now=c.currentTime;
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.setValueAtTime(300,now);o.frequency.exponentialRampToValueAtTime(700,now+0.25);
+    g.gain.setValueAtTime(0.03,now);g.gain.exponentialRampToValueAtTime(0.001,now+0.3);
+    o.connect(g);g.connect(this.gains.master);o.start(now);o.stop(now+0.3);
+  }
+}
+
+/* ── Logo SVG ─────────────────────────────────── */
+function Logo({size=80,color=C.red}){
+  return(
+    <svg width={size} height={size} viewBox="0 0 1024 1024" fill="none">
+      <path fill={color} d="M493.79,197.29c269-14.78,435.48,278.96,281.02,501.02-124.36,178.79-385.55,182.34-516.21,8.58-153.66-204.35-19.87-495.59,235.19-509.6ZM294,493c7.72-101.79,94.97-187.62,196.35-196.15l1.65-1.35v-55c-.75-1.02-.87-1.09-2.04-1.09-12.34-.02-28.8,3.34-40.97,6.07-117.3,26.35-204.7,127.56-213.99,247.51h59ZM534,239v58c102.23,6.2,192.16,93.31,199,196h59c-8.97-99.59-71.09-189.28-162.32-230.18-30.53-13.68-62.3-21.02-95.68-23.82ZM643.65,392.35c-108.21-112.35-302.62-42.24-309.69,115.11-5.96,132.6,131.1,225.7,252.72,171.72,111.54-49.51,142.58-197.93,56.97-286.83ZM293,534h-58c8.95,135.6,120.94,249.96,257,259v-58c-104.94-7.21-190.33-97.44-199-201ZM792,534h-59c-7.05,103.61-94.74,193.93-199,201v58c135.99-8.8,249.07-123.29,258-259Z"/>
+      <path fill={color} d="M588,646h-58v-28.5c0-.56-2.27-3.45-3.02-3.98-2.84-1.99-20.61-2.23-24.46-1.5-1.45.28-5.52,3.91-5.52,4.48v29.5h-58v-142l74.42-36.99c25.04,12.37,50.84,24,74.58,38.49v140.5ZM473.74,530.17c-2.98.61-6.27,4.32-6.68,7.39,1.26,15.77-1.88,34.59-.08,49.96,1.19,10.15,16.4,10.82,17.93-.11,1.33-9.54,1.25-39.2.11-48.93-.63-5.36-6.01-9.39-11.29-8.31ZM512.77,530.18c-3.27.35-7.55,2.67-7.71,6.38,1.01,16.08-1.56,34.15-.11,49.98,1.08,11.88,15.6,10.73,16.99,1.89,1.31-8.33,1.25-42.43.11-50.99-.55-4.15-5.08-7.72-9.28-7.27ZM548.73,530.17c-2.98.62-6.26,4.32-6.68,7.38,1.08,15.64-1.66,33.6-.05,48.94,1.19,11.34,15.43,11.48,16.94,1.95,1.38-8.68,1.16-40.86.08-49.97-.6-5.07-4.96-9.4-10.29-8.3Z"/>
+      <path fill={color} d="M405,488v44.5c0,3.26,7.48,14.82,7.93,21.14.43,5.95-3.86,9.72-3.86,12.86,0,1.93,5.55,13.08,6.48,17.45,1.13,5.31,2.96,16.6-1.58,20.52-2.84,2.45-23.83,2.18-27.34.39-6.09-3.1-3.5-15.25-2.34-21.07.93-4.67,6.22-15.23,6.3-17.29.09-2.31-2.89-6.38-3.36-9.25-1.76-10.74,5.72-16,6.79-24.74,1.87-15.28-1.48-34.17.01-49.86-6.47-3.76-13.5-6.59-20.07-10.19-1.13-.62-2.44.07-1.97-1.97l139.57-76.52,4.15.79,138.26,73.72-56.32,25.21-86.05-38.67-86.35,40.8c-5.74,1-14.43-6.85-20.25-7.83Z"/>
+    </svg>
+  );
+}
+
+/* ── Persistent chrome ─────────────────────────── */
+function Chrome({visible}){
+  if(!visible)return null;
+  return(
+    <div style={{position:'absolute',top:48,left:48,right:48,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{display:'flex',alignItems:'center',gap:16}}>
+        <Logo size={56} color={C.red}/>
+        <span style={{fontFamily:'Inter',fontWeight:900,fontSize:28,color:C.dark,letterSpacing:'-.02em'}}>Proximity</span>
+      </div>
+      <span style={{fontFamily:'Inter',fontWeight:700,fontSize:18,letterSpacing:'.18em',textTransform:'uppercase',color:C.red}}>FOR WASHU STUDENTS</span>
+    </div>
+  );
+}
+
+/* ── Timeline ─────────────────────────────────── */
+const T={
+  intro:   {s:0,   e:2.8},
+  tabs:    {s:2.8, e:6.6},
+  reviews: {s:6.6, e:12.4},
+  cta:     {s:12.4,e:19.5},
+};
+const TOTAL=19.5;
+
+/* ── Scene 1: Logo Intro ──────────────────────── */
+function SceneIntro({t}){
+  if(t>T.intro.e+0.4)return null;
+  const lt=t-T.intro.s;
+  const logoT=clamp(lt/0.6,0,1);
+  const le=ease.outBack(logoT);
+  const nameT=clamp((lt-0.3)/0.5,0,1);
+  const ne=ease.outCubic(nameT);
+  const subT=clamp((lt-0.6)/0.5,0,1);
+  const exitF=lt>2.2?clamp((lt-2.2)/0.4,0,1):0;
+  return(
+    <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',opacity:1-exitF}}>
+      <div style={{position:'relative',width:220,height:220}}>
+        <svg width={220} height={220} viewBox="0 0 220 220" style={{position:'absolute',top:0,left:0}}>
+          <circle cx={110} cy={110} r={100} fill="none" stroke={C.red} strokeWidth={4}
+            strokeDasharray={628.3}
+            strokeDashoffset={628.3*(1-logoT)}
+            strokeLinecap="round"
+            style={{transition:'none'}}
+          />
+        </svg>
+        <div style={{position:'absolute',top:0,left:0,width:220,height:220,clipPath:`circle(${le*50}% at 50% 50%)`}}>
+          <Logo size={220} color={C.red}/>
+        </div>
+      </div>
+      <div style={{marginTop:36,fontWeight:900,fontSize:96,letterSpacing:'-.04em',color:C.dark,opacity:nameT,transform:`translateY(${(1-ne)*20}px)`}}>
+        Proximity
+      </div>
+      <div style={{marginTop:20,fontWeight:700,fontSize:24,letterSpacing:'.28em',textTransform:'uppercase',color:C.red,opacity:subT,transform:`translateY(${(1-ease.outCubic(subT))*12}px)`}}>
+        WashU off-campus housing
+      </div>
+    </div>
+  );
+}
+
+/* ── Scene 2: 5 Tabs Zero Answers ────────────── */
+function SceneTabs({t}){
+  if(t<T.tabs.s||t>T.tabs.e+0.4)return null;
+  const lt=t-T.tabs.s;
+  const headT=clamp(lt/0.5,0,1);
+  const he=ease.outCubic(headT);
+  const tabs=[
+    {fav:'Z',color:'#444',label:'zillow.com'},
+    {fav:'A',color:'#666',label:'apartments.com'},
+    {fav:'?',color:'#888',label:'random landlords'},
+    {fav:'f',color:'#555',label:'Facebook groups'},
+    {fav:'R',color:'#777',label:'reddit'},
+  ];
+  const exitF=lt>3.2?clamp((lt-3.2)/0.4,0,1):0;
+  return(
+    <div style={{position:'absolute',inset:0,opacity:1-exitF}}>
+      <div style={{position:'absolute',left:80,right:80,top:320,opacity:headT,transform:`translateY(${(1-he)*30}px)`}}>
+        <div style={{fontWeight:700,fontSize:22,letterSpacing:'.25em',textTransform:'uppercase',color:C.red,marginBottom:28}}>OFF-CAMPUS HOUSING NEAR WASHU</div>
+        <div style={{fontWeight:900,fontSize:120,lineHeight:.92,letterSpacing:'-.045em',color:C.dark}}>
+          5 TABS.<br/><span style={{color:C.red}}>ZERO<br/>ANSWERS.</span>
+        </div>
+      </div>
+      <div style={{position:'absolute',left:80,right:80,top:1000,display:'flex',flexDirection:'column',gap:16}}>
+        {tabs.map((tab,i)=>{
+          const tt=clamp((lt-0.6-i*0.18)/0.4,0,1);
+          const te=ease.outBack(tt);
+          const strikeStart=1.8+i*0.2;
+          const strikeT=clamp((lt-strikeStart)/0.3,0,1);
+          const strikeE=ease.inOutCubic(strikeT);
+          return(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:16,padding:'20px 28px',borderRadius:16,background:C.white,border:'1.5px solid rgba(0,0,0,.06)',boxShadow:'0 2px 8px rgba(0,0,0,.04)',opacity:tt,transform:`translateX(${(1-te)*50}px)`,position:'relative'}}>
+              <div style={{width:40,height:40,borderRadius:10,background:tab.color,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:18,flexShrink:0}}>{tab.fav}</div>
+              <div style={{fontWeight:600,fontSize:26,color:strikeT>0?C.gray:C.dark,letterSpacing:'-.01em',transition:'color 0.2s'}}>{tab.label}</div>
+              <div style={{marginLeft:'auto',color:'rgba(0,0,0,.3)',fontSize:22}}>x</div>
+              {strikeT>0&&(
+                <div style={{position:'absolute',left:28,right:28,top:'50%',height:3,borderRadius:2,background:C.red,transformOrigin:'left center',transform:`scaleX(${strikeE})`,opacity:0.85+strikeE*0.15}}/>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Scene 3: Reviews ─────────────────────────── */
+function ReviewCard({name,address,quote,rating,good,delay,lt,img,walk,price}){
+  const t=clamp((lt-delay)/0.8,0,1);
+  const e=ease.outCubic(t);
+  const popDelay=delay+1.0;
+  const popT=clamp((lt-popDelay)/0.4,0,1);
+  const popE=ease.outBack(popT);
+  const stars='★'.repeat(Math.floor(rating))+(rating%1?'½':'');
+  const accent=good?C.green:C.red;
+  return(
+    <div style={{
+      borderRadius:24,overflow:'visible',position:'relative',
+      opacity:t,transform:`translateY(${(1-e)*40}px)`,
+    }}>
+      <div style={{
+        borderRadius:24,overflow:'hidden',
+        background:C.white,
+        border:`2px solid ${good?'rgba(34,197,94,.25)':'rgba(226,58,47,.2)'}`,
+        boxShadow:good?'0 8px 32px rgba(34,197,94,.1)':'0 8px 32px rgba(226,58,47,.08)',
+      }}>
+        <div style={{position:'relative',width:'100%',height:340,overflow:'hidden'}}>
+          <img src={img} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center 35%'}}/>
+          <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'8px 20px',background:'linear-gradient(transparent,rgba(0,0,0,.55))',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{fontSize:20,fontWeight:700,color:'#fff'}}>{walk} walk to campus</div>
+            <div style={{fontSize:20,fontWeight:800,color:'#fff'}}>{price}</div>
+          </div>
+        </div>
+        <div style={{padding:'20px 32px'}}>
+          <div style={{fontWeight:800,fontSize:24,color:C.dark,letterSpacing:'-.01em'}}>{address}</div>
+        </div>
+      </div>
+      {popT>0&&(
+        <div style={{
+          position:'absolute',right:-16,top:'50%',width:300,
+          marginTop:-80,
+          padding:'22px 24px',borderRadius:14,
+          background:accent,
+          boxShadow:`0 12px 40px ${good?'rgba(34,197,94,.35)':'rgba(226,58,47,.35)'}`,
+          transform:`scale(${.85+popE*.15}) translateX(${(1-popE)*30}px)`,
+          opacity:popT,zIndex:10,
+        }}>
+          <div style={{fontSize:22,color:'rgba(255,255,255,.9)',marginBottom:10}}>{stars}</div>
+          <div style={{fontSize:22,fontWeight:600,lineHeight:1.35,color:C.white,fontStyle:'italic'}}>"{quote}"</div>
+          <div style={{marginTop:10,fontSize:16,fontWeight:800,color:'rgba(255,255,255,.85)'}}>— {name}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SceneReviews({t}){
+  if(t<T.reviews.s||t>T.reviews.e+0.4)return null;
+  const lt=t-T.reviews.s;
+  const headT=clamp(lt/0.5,0,1);
+  const he=ease.outCubic(headT);
+  const exitF=lt>5.0?clamp((lt-5.0)/0.4,0,1):0;
+  return(
+    <div style={{position:'absolute',inset:0,opacity:1-exitF}}>
+      <div style={{position:'absolute',left:80,right:80,top:260,opacity:headT,transform:`translateY(${(1-he)*30}px)`}}>
+        <div style={{fontWeight:700,fontSize:22,letterSpacing:'.25em',textTransform:'uppercase',color:C.red,marginBottom:28}}>REAL STUDENTS. REAL REVIEWS.</div>
+        <div style={{fontWeight:900,fontSize:100,lineHeight:.92,letterSpacing:'-.04em',color:C.dark}}>
+          Read the<br/><span style={{color:C.red}}>receipts.</span>
+        </div>
+      </div>
+      <div style={{position:'absolute',left:64,right:64,top:700,display:'flex',flexDirection:'column',gap:28}}>
+        <ReviewCard
+          lt={lt} delay={0.6} good={false}
+          address="7012 Forsyth Blvd"
+          name="Rachel"
+          quote="The landlord made me fear for my safety."
+          rating={1}
+          img="property1.jpg"
+          walk="12 min"
+          price="$950/mo"
+        />
+        <ReviewCard
+          lt={lt} delay={1.6} good={true}
+          address="5959 McPherson"
+          name="Benjamin"
+          quote="Responsive landlord who is quick to help."
+          rating={5}
+          img="property2.webp"
+          walk="6 min"
+          price="$780/mo"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── Scene 4: CTA ─────────────────────────────── */
+function SceneCTA({t}){
+  if(t<T.cta.s)return null;
+  const lt=t-T.cta.s;
+  const logoT=clamp(lt/0.6,0,1);
+  const le=ease.outCubic(logoT);
+  const tagT=clamp((lt-0.5)/0.6,0,1);
+  const te=ease.outCubic(tagT);
+  const btnT=clamp((lt-1.2)/0.5,0,1);
+  const be=ease.outBack(btnT);
+  const urlT=clamp((lt-1.8)/0.5,0,1);
+  const freeT=clamp((lt-2.2)/0.4,0,1);
+  const clickTime=3.5;
+  const clicked=lt>=clickTime;
+  const clickPress=clicked?clamp((lt-clickTime)/0.08,0,1):0;
+  const clickRelease=clicked?clamp((lt-clickTime-0.08)/0.15,0,1):0;
+  const btnScale=clicked?(1-0.06*clickPress+0.06*clickRelease):1;
+  const btnShadow=clicked&&clickRelease<1?'0 4px 16px rgba(226,58,47,.2)':'0 16px 48px rgba(226,58,47,.35)';
+  const btnBg=clicked?`rgba(190,30,24,${1-clickRelease*0.15+clickRelease*0.15})`:C.red;
+  return(
+    <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+      <div style={{opacity:logoT,transform:`translateY(${(1-le)*30}px)`,display:'flex',flexDirection:'column',alignItems:'center',gap:24}}>
+        <Logo size={160} color={C.red}/>
+        <div style={{fontWeight:900,fontSize:80,letterSpacing:'-.04em',color:C.dark}}>Proximity</div>
+      </div>
+      <div style={{marginTop:60,textAlign:'center',opacity:tagT,transform:`translateY(${(1-te)*24}px)`}}>
+        <div style={{fontWeight:800,fontSize:52,lineHeight:1.15,letterSpacing:'-.03em',color:C.dark}}>
+          Find your place.<br/><span style={{color:C.red}}>Skip the chaos.</span>
+        </div>
+      </div>
+      <div style={{marginTop:64,opacity:btnT,transform:`scale(${(.85+be*.15)*btnScale})`}}>
+        <div style={{padding:'32px 64px',background:C.red,color:C.white,fontWeight:800,fontSize:36,letterSpacing:'-.01em',borderRadius:999,boxShadow:btnShadow,display:'flex',alignItems:'center',gap:20}}>
+          Browse listings or get matched
+        </div>
+      </div>
+      <div style={{marginTop:36,opacity:urlT,transform:`translateY(${(1-ease.outCubic(urlT))*16}px)`}}>
+        <div style={{fontSize:30,fontWeight:600,letterSpacing:'.03em',color:C.dark}}>useproximity.org</div>
+      </div>
+      <div style={{marginTop:24,opacity:freeT}}>
+        <div style={{fontSize:18,fontWeight:700,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main App ─────────────────────────────────── */
+function App(){
+  const[started,setStarted]=React.useState(false);
+  const[t,setT]=React.useState(0);
+  const[done,setDone]=React.useState(false);
+  const[zoom,setZoom]=React.useState(1);
+  const sfxRef=React.useRef(null);
+  const firedRef=React.useRef(new Set());
+
+  React.useEffect(()=>{
+    const m=()=>setZoom(Math.min(window.innerWidth/1080,window.innerHeight/1920));
+    m();window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m);
+  },[]);
+
+  /* SFX triggers */
+  React.useEffect(()=>{
+    if(!started||done)return;
+    const sfx=sfxRef.current;if(!sfx)return;
+    const fired=firedRef.current;
+    const fire=(k,time,fn)=>{if(t>=time&&!fired.has(k)){fired.add(k);fn();}};
+
+    /* Intro scene - sounds from the very start */
+    fire('introImpact',0.0,()=>sfx.impact());
+    fire('introName',0.4,()=>sfx.ding(700));
+    fire('introBadge',0.7,()=>sfx.tick(1200));
+
+    /* 5 Tabs scene */
+    fire('tabsImpact',T.tabs.s,()=>sfx.thump());
+    fire('tab1',T.tabs.s+0.7,()=>sfx.tick(900));
+    fire('tab2',T.tabs.s+0.88,()=>sfx.tick(1000));
+    fire('tab3',T.tabs.s+1.06,()=>sfx.tick(1100));
+    fire('tab4',T.tabs.s+1.24,()=>sfx.tick(1200));
+    fire('tab5',T.tabs.s+1.42,()=>sfx.tick(1300));
+
+    /* Strikethrough SFX */
+    fire('strike0',T.tabs.s+1.8,()=>sfx.swipe());
+    fire('strike1',T.tabs.s+2.0,()=>sfx.swipe());
+    fire('strike2',T.tabs.s+2.2,()=>sfx.swipe());
+    fire('strike3',T.tabs.s+2.4,()=>sfx.swipe());
+    fire('strike4',T.tabs.s+2.6,()=>sfx.swipe());
+
+    /* Reviews scene */
+    fire('reviewsImpact',T.reviews.s,()=>sfx.impact());
+    fire('reviewBadDing',T.reviews.s+0.7,()=>sfx.ding(400));
+    fire('reviewBadPop',T.reviews.s+1.6,()=>sfx.pop());
+    fire('reviewGoodDing',T.reviews.s+1.6,()=>sfx.ding(900));
+    fire('reviewGoodPop',T.reviews.s+2.6,()=>sfx.pop());
+
+    /* CTA scene */
+    fire('ctaThump',T.cta.s,()=>sfx.thump());
+    fire('ctaDing',T.cta.s+1.8,()=>sfx.ding(880));
+    fire('ctaClick',T.cta.s+3.5,()=>sfx.pop());
+    fire('ctaConfirm',T.cta.s+3.8,()=>sfx.ding(1100));
+  },[t,started,done]);
+
+  /* Master time loop */
+  React.useEffect(()=>{
+    if(!started)return;
+    let raf;const startNow=performance.now();
+    const tick=now=>{
+      const elapsed=(now-startNow)/1000;
+      setT(elapsed);
+      if(elapsed>=TOTAL){setDone(true);return;}
+      raf=requestAnimationFrame(tick);
+    };
+    raf=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(raf);
+  },[started]);
+
+  const begin=async()=>{
+    if(!sfxRef.current){sfxRef.current=new SfxEngine();}
+    sfxRef.current.ensureCtx();
+    try{await sfxRef.current.ctx.resume();}catch{}
+    firedRef.current=new Set();
+    setStarted(true);setDone(false);setT(0);
+  };
+  const restart=()=>{setStarted(false);setDone(false);setT(0);setTimeout(begin,60);};
+
+  const showChrome=started&&!done&&t>0.3&&t<T.cta.s-0.3;
+
+  return(
+    <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:C.offWhite}}>
+      <div style={{width:1080,height:1920,background:C.offWhite,position:'relative',overflow:'hidden',zoom}}>
+        <Chrome visible={showChrome}/>
+        {started&&!done&&(
+          <>
+            <SceneIntro t={t}/>
+            <SceneTabs t={t}/>
+            <SceneReviews t={t}/>
+            <SceneCTA t={t}/>
+          </>
+        )}
+
+        {/* Tap-to-play splash */}
+        {!started&&(
+          <div onClick={begin} style={{position:'absolute',inset:0,zIndex:500,background:C.offWhite,display:'grid',placeItems:'center',cursor:'pointer'}}>
+            <div style={{textAlign:'center'}}>
+              <div style={{margin:'0 auto 36px'}}><Logo size={180} color={C.red}/></div>
+              <div style={{fontWeight:900,fontSize:80,letterSpacing:'-.04em',color:C.dark}}>Proximity</div>
+              <div style={{marginTop:14,fontWeight:700,fontSize:20,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>:15 spot - sound on</div>
+              <div style={{marginTop:56,width:120,height:120,borderRadius:'50%',background:C.red,display:'inline-flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+                <div style={{width:0,height:0,borderLeft:'32px solid #fff',borderTop:'20px solid transparent',borderBottom:'20px solid transparent',marginLeft:10}}/>
+                <span style={{position:'absolute',inset:0,borderRadius:'50%',background:C.red,animation:'pulse 1.8s ease-out infinite',zIndex:-1}}/>
+              </div>
+              <div style={{marginTop:24,fontWeight:500,fontSize:24,color:C.gray}}>tap to play with sound</div>
+            </div>
+          </div>
+        )}
+        {/* Replay */}
+        {done&&(
+          <div onClick={restart} style={{position:'absolute',inset:0,zIndex:500,background:'rgba(250,250,250,.85)',display:'grid',placeItems:'center',cursor:'pointer'}}>
+            <div style={{textAlign:'center'}}>
+              <Logo size={120} color={C.red}/>
+              <div style={{marginTop:24,fontWeight:900,fontSize:48,color:C.dark}}>Proximity</div>
+              <div style={{marginTop:40,padding:'20px 48px',background:C.red,color:'#fff',borderRadius:999,fontWeight:700,fontSize:22,letterSpacing:'.15em',textTransform:'uppercase',display:'inline-block'}}>&#8635; tap to replay</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>

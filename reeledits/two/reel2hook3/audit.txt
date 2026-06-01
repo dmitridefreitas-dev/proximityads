@@ -1,0 +1,151 @@
+REEL 2 HOOK 3 — SPEC AUDIT
+============================
+Comparing current index.html implementation against the full spec.
+
+========================================
+SCENE 1: HOOK — Screenshot Pile-On
+========================================
+
+SPEC: Open on a clean white frame. Screenshots build in 3 phases, escalating audio.
+IMPL: Off-white (#FAFAFA) background. ScreenshotCard components with polaroid style. ✅
+
+SPEC: 10 screenshots. Styled as "polaroid cards" — white border, slightly rotated, scattered placement, subtle drop shadow. Each card stacks on top of previous (building z-index).
+IMPL: 10 screenshots (ss1-ss10.jpg). Polaroid style with white background, 12px padding top/sides, 36px bottom. Rotation via data.rot, z-index = time*100 (+100 for big). Drop shadows. ✅
+
+SPEC: Phase 1 (0, 0.8, 1.6s) — 3 screenshots, slow ~0.8s each, soft isolated thuds.
+IMPL: ss1 at 0s, ss2 at 0.8s, ss3 at 1.6s. Thud intensity 0.3-0.35. ✅
+
+SPEC: Phase 2 (2.4, 2.8, 3.2s) — 3 screenshots, faster ~0.4s, thuds + tension drone.
+IMPL: ss4 at 2.4s, ss5 at 2.8s, ss6 at 3.2s. Thud 0.4-0.5, drone starts at 0.1→0.3. ✅
+
+SPEC: Phase 3 (3.6, 3.75, 3.9, 4.05s) — 4 screenshots rapid burst ~0.15s, pure chaos. Last one slightly larger.
+IMPL: ss7 at 3.6, ss8 at 3.75, ss9 at 3.9, ss10 at 4.05. Thuds 0.55-0.85, drone 0.38→0.55. ss10 has big:true (scale 1.08). ✅
+
+SPEC: Audio — escalating thuds + drone building. Phase 1 isolated. Phase 2 drone enters. Phase 3 overlapping chaos.
+IMPL: SfxEngine with thud(), startDrone(), setDroneLevel(). Three-phase escalation exactly as spec. ✅
+
+SPEC: 4.45s — hard cut to dead black. Dead silence. Drone stops instantly.
+IMPL: HOOK.blackCut = 4.45. showPile = t < 4.45, isBlack = t >= 4.45. stopDrone() fires at blackCut. ✅
+
+SPEC: 4.7s — "Meet Proximity." fades in. White text, "Proximity." in red. 1 second hold in silence.
+IMPL: HOOK.meetText = 4.7. Font 88px weight 900. "Meet" in white, "Proximity." in red. Holds until 5.7s (1.0s visible). ✅
+
+SPEC: Beat drop. Transition into body.
+IMPL: HOOK.beatDrop = 5.7. beatDrop() SFX fires. Exit fade over 0.3s. Hook ends at 6.0s. ✅
+
+========================================
+SCENE 2: FORM — "Find Your Place"
+========================================
+
+SPEC: Title "Find Your Place" appears.
+IMPL: SceneFormTitle at 6.0-6.8s. "Find Your Place" with "Place" in red. Font 96px weight 900. Scale-in with outBack easing. ✅
+
+SPEC: Form fields autofill one at a time:
+  - "Group Size?" → "2 people"
+  - "Budget per person?" → "Under $800"
+  - "Move-in?" → "August 1st"
+  - "What matters most? Pick 2" → "Walking distance to campus" + "Near restaurants & nightlife"
+IMPL: Four FormField components with those exact labels and values. Fields activate with 1.0s delays. Active border = red, done border = green. ✅
+
+SPEC: "Match me with places" button lights up and user taps it.
+IMPL: Button transitions from red-tinted to solid red with shadow. ✅
+
+SPEC: Audio — each field gets a tick SFX, button gets a pop.
+IMPL: tick(1100) at each field fill time, pop() on form submit. ✅
+
+========================================
+SCENE 3: MATCH CARDS
+========================================
+
+SPEC: Two apartment match cards slide in. Card 1 has "TOP PICK" badge.
+IMPL: Two MatchCard components. Card 1 badge={true} ("TOP PICK"), Card 2 badge={false}. Slide-in with outBack easing. ✅
+
+SPEC: Card 1 — 6040 Kingsbury Ave, St. Louis MO 63112, $1,395/mo, 2 bed | 1 bath | Standard, 19min campus, 1min shuttle. Pills: Walking distance, Near nightlife.
+IMPL: All data matches exactly. Photo: 6040.avif. ✅
+
+SPEC: Card 2 — Tanjiers, 5522 Delmar Blvd St. Louis MO 63112, $938-$1,169/mo, 0-2 bed | 1 bath | Standard, 34min campus, 2min shuttle. Pills: Near restaurants.
+IMPL: All data matches exactly. Photo: tanjiers.jpg. ✅
+
+SPEC: No manager names.
+IMPL: No manager prop in MatchCard calls. ✅
+
+SPEC: Audio — slideUp SFX for each card.
+IMPL: slideUp() at TB.cards.s+0.3 and TB.cards.s+0.6. ✅
+
+========================================
+SCENE 4: "NOT SURE YET" BUTTON
+========================================
+
+SPEC: "Not sure yet" button appears with scale animation. User presses — press down, hold, release. Border highlights red on press.
+IMPL: Button appears with outCubic scale-in. Press: 0.25s down (scale→0.92), 0.2s hold, 0.2s release. Border/color/bg highlight red. ✅
+
+SPEC: Audio — tick SFX on appear.
+IMPL: tick(800) at TB.notSure.s+0.1. ✅
+
+========================================
+SCENE 5: CONCIERGE CHAT
+========================================
+
+SPEC: Concierge header with green dot + "REPLYING LIVE".
+IMPL: Green 14px dot, "Proximity Concierge", "REPLYING LIVE" in green uppercase. ✅
+
+SPEC: 3 chat bubbles with correct text.
+IMPL: Three ChatBubble components with exact text. Bot = white bg, User = red bg. Staggered delays. ✅
+
+SPEC: Park Lux card drops in at lt=3s. User clicks — press animation before expanding to listing.
+IMPL: Card appears at lt>3 with outBack. Click at lt=3.8s, scale 0.96, red border highlight. Photo: parklux.avif. ✅
+
+SPEC: Chat card data: Park Lux, 5560 Pershing Ave, $1,420-$1,520/mo, 2 bed | 1-1.5 bath, 33min campus, 6min shuttle.
+IMPL: All data matches exactly. ✅
+
+SPEC: Audio — ding for each bubble, whoosh for card drop.
+IMPL: ding(900), ding(700), ding(900), whoosh(). ✅
+
+========================================
+SCENE 6: LISTING DETAIL
+========================================
+
+SPEC: Full listing — 16:9 photo, details, commute row, amenity tags, utilities badge, tour button.
+IMPL: SceneListing with 16:9 aspect ratio parklux.avif, scale-in animation. ✅
+
+SPEC: Park Lux details + commute: 33 min walk to campus, 6 min to shuttle.
+IMPL: All data matches. Colored pill badges for commute. ✅
+
+SPEC: Amenity tags: Furnished, In-unit laundry, Gym, Parking. "Utilities Included" green badge.
+IMPL: Four staggered amenity tags in red tint. Green utilities badge. ✅
+
+SPEC: "Request Tour" → press animation → "✓ Tour Requested".
+IMPL: Red button, press scale 0.96, confirmed = green "✓ Tour Requested". ✅
+
+SPEC: Audio — whoosh, pop, confirm.
+IMPL: whoosh('high'), pop(), confirm(). ✅
+
+========================================
+SCENE 7: CTA
+========================================
+
+SPEC: Proximity logo + "proximity" + "Find your place. Skip the chaos." + red pill button + "FREE FOR WASHU STUDENTS".
+IMPL: Logo 160px, text 80px, tagline 48px, red button with URL, gray uppercase free tag. ✅
+
+SPEC: Audio — thump on appear.
+IMPL: thump() at TB.cta.s+0.1. ✅
+
+========================================
+TIMELINE
+========================================
+
+  Hook:       0-6.0s         ✅
+  formTitle:  6.0-6.8s       ✅
+  formFill:   6.8-11.0s      ✅
+  formSubmit: 11.0-11.7s     ✅
+  cards:      11.7-14.0s     ✅
+  notSure:    14.0-15.5s     ✅
+  chat:       15.5-19.7s     ✅
+  listing:    19.7-22.7s     ✅
+  tour:       22.7-24.0s     ✅
+  cta:        24.0-27.7s     ✅
+  TOTAL:      27.7s          ✅
+
+========================================
+VERDICT: ✅ FULL PASS — ALL SPEC REQUIREMENTS MET
+========================================

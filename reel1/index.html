@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Proximity — Instagram Story Ad</title>
+<link rel="icon" href="data:,"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0B0B0C; overflow: hidden; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+  #root { position: fixed; inset: 0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+
+const Easing = {
+  linear: (t) => t,
+  easeInQuad: (t) => t * t,
+  easeOutQuad: (t) => t * (2 - t),
+  easeInOutQuad: (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t),
+  easeInCubic: (t) => t * t * t,
+  easeOutCubic: (t) => (--t) * t * t + 1,
+  easeInOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1),
+  easeInQuart: (t) => t * t * t * t,
+  easeOutQuart: (t) => 1 - (--t) * t * t * t,
+  easeInOutQuart: (t) => (t < 0.5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t),
+  easeInExpo: (t) => (t === 0 ? 0 : Math.pow(2, 10 * (t - 1))),
+  easeOutExpo: (t) => (t === 1 ? 1 : 1 - Math.pow(2, -10 * t)),
+  easeInOutExpo: (t) => { if (t === 0) return 0; if (t === 1) return 1; if (t < 0.5) return 0.5 * Math.pow(2, 20 * t - 10); return 1 - 0.5 * Math.pow(2, -20 * t + 10); },
+  easeInSine: (t) => 1 - Math.cos((t * Math.PI) / 2),
+  easeOutSine: (t) => Math.sin((t * Math.PI) / 2),
+  easeInOutSine: (t) => -(Math.cos(Math.PI * t) - 1) / 2,
+  easeOutBack: (t) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+  easeInBack: (t) => { const c1 = 1.70158, c3 = c1 + 1; return c3 * t * t * t - c1 * t * t; },
+  easeInOutBack: (t) => { const c1 = 1.70158, c2 = c1 * 1.525; return t < 0.5 ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2 : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2; },
+  easeOutElastic: (t) => { const c4 = (2 * Math.PI) / 3; if (t === 0) return 0; if (t === 1) return 1; return Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1; },
+};
+
+const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+function interpolate(input, output, ease = Easing.linear) {
+  return (t) => {
+    if (t <= input[0]) return output[0];
+    if (t >= input[input.length - 1]) return output[output.length - 1];
+    for (let i = 0; i < input.length - 1; i++) {
+      if (t >= input[i] && t <= input[i + 1]) {
+        const span = input[i + 1] - input[i];
+        const local = span === 0 ? 0 : (t - input[i]) / span;
+        const easeFn = Array.isArray(ease) ? (ease[i] || Easing.linear) : ease;
+        const eased = easeFn(local);
+        return output[i] + (output[i + 1] - output[i]) * eased;
+      }
+    }
+    return output[output.length - 1];
+  };
+}
+
+function animate({ from = 0, to = 1, start = 0, end = 1, ease = Easing.easeInOutCubic }) {
+  return (t) => { if (t <= start) return from; if (t >= end) return to; const local = (t - start) / (end - start); return from + (to - from) * ease(local); };
+}
+
+const TimelineContext = React.createContext({ time: 0, duration: 10, playing: false });
+const useTime = () => React.useContext(TimelineContext).time;
+const useTimeline = () => React.useContext(TimelineContext);
+const SpriteContext = React.createContext({ localTime: 0, progress: 0, duration: 0 });
+const useSprite = () => React.useContext(SpriteContext);
+
+function Sprite({ start = 0, end = Infinity, children, keepMounted = false }) {
+  const { time } = useTimeline();
+  const visible = time >= start && time <= end;
+  if (!visible && !keepMounted) return null;
+  const duration = end - start;
+  const localTime = Math.max(0, time - start);
+  const progress = duration > 0 && isFinite(duration) ? clamp(localTime / duration, 0, 1) : 0;
+  const value = { localTime, progress, duration, visible };
+  return (<SpriteContext.Provider value={value}>{typeof children === 'function' ? children(value) : children}</SpriteContext.Provider>);
+}
+
+function Stage({ width = 1080, height = 1920, duration = 10, background = '#0B0B0C', loop = true, children }) {
+  const [time, setTime] = React.useState(0);
+  const [playing, setPlaying] = React.useState(true);
+  const [zoomLevel, setZoomLevel] = React.useState(1);
+  const rafRef = React.useRef(null);
+  const lastTsRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const measure = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const scaleX = vw / width;
+      const scaleY = vh / height;
+      setZoomLevel(Math.min(scaleX, scaleY));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [width, height]);
+
+  React.useEffect(() => {
+    if (!playing) { lastTsRef.current = null; return; }
+    const step = (ts) => {
+      if (lastTsRef.current == null) lastTsRef.current = ts;
+      const dt = (ts - lastTsRef.current) / 1000;
+      lastTsRef.current = ts;
+      setTime((t) => { let next = t + dt; if (next >= duration) { if (loop) next = next % duration; else { next = duration; setPlaying(false); } } return next; });
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); lastTsRef.current = null; };
+  }, [playing, duration, loop]);
+
+  const ctxValue = React.useMemo(() => ({ time, duration, playing, setTime, setPlaying }), [time, duration, playing]);
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background }}>
+      <div style={{ width, height, background, position: 'relative', overflow: 'hidden', zoom: zoomLevel }}>
+        <TimelineContext.Provider value={ctxValue}>{children}</TimelineContext.Provider>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// scenes
+// ═══════════════════════════════════════════════════════════════════════════
+
+const PROX = {
+  red: '#E5322B', redDk: '#B81F19', black: '#0B0B0C', ink: '#16161A',
+  paper: '#F7F3EE', cream: '#EFE9E0', mute: '#7A7570', white: '#FFFFFF',
+};
+const FONT_DISPLAY = '"Plus Jakarta Sans", "Inter", system-ui, sans-serif';
+const FONT_MONO = '"JetBrains Mono", ui-monospace, monospace';
+
+function ProxLogoForBg({ size = 120, color = PROX.red, bg = PROX.black }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" style={{ display: 'block' }}>
+      <circle cx="50" cy="50" r="46" stroke={color} strokeWidth="5"/>
+      <circle cx="50" cy="50" r="32" stroke={color} strokeWidth="4"/>
+      <rect x="48" y="0" width="4" height="10" fill={color}/>
+      <rect x="48" y="90" width="4" height="10" fill={color}/>
+      <rect x="0" y="48" width="10" height="4" fill={color}/>
+      <rect x="90" y="48" width="10" height="4" fill={color}/>
+      <path d="M50 28 L68 44 L68 66 L32 66 L32 44 Z" fill={color}/>
+      <rect x="46" y="54" width="8" height="12" fill={bg}/>
+    </svg>
+  );
+}
+
+function Pill({ children, filled = false, color = PROX.red }) {
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 22px', borderRadius: 999, background: filled ? color : 'rgba(255,255,255,0.06)', border: `1.5px solid ${filled ? color : 'rgba(247,243,238,0.18)'}`, color: filled ? PROX.white : PROX.paper, fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: 26, letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+      {children}
+    </div>
+  );
+}
+
+function BackgroundLayer() {
+  const t = useTime();
+  const drift = (t * 6) % 100;
+  return (
+    <>
+      <div style={{ position: 'absolute', inset: 0, background: PROX.black }}/>
+      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(70% 60% at 50% 28%, rgba(229,50,43,0.34) 0%, rgba(229,50,43,0.22) 20%, rgba(229,50,43,0.12) 40%, rgba(229,50,43,0.05) 60%, rgba(229,50,43,0) 80%)`, opacity: 0.9 }}/>
+      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(55% 45% at 78% 88%, rgba(229,50,43,0.20) 0%, rgba(229,50,43,0.12) 25%, rgba(229,50,43,0.05) 50%, rgba(0,0,0,0) 75%)` }}/>
+      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(50% 40% at 22% 65%, rgba(229,50,43,0.08) 0%, rgba(229,50,43,0.03) 40%, rgba(0,0,0,0) 70%)` }}/>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0 1px, transparent 1px 80px)`, transform: `translateY(${drift}px)`, opacity: 0.6 }}/>
+      <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(130% 90% at 50% 50%, transparent 40%, rgba(0,0,0,0.25) 65%, rgba(0,0,0,0.55) 100%)` }}/>
+      <svg style={{ position: 'absolute', width: 0, height: 0 }}><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter></svg>
+      <div style={{ position: 'absolute', inset: 0, opacity: 0.035, filter: 'url(#noise)', background: 'transparent', mixBlendMode: 'overlay' }}/>
+    </>
+  );
+}
+
+function Scene1Brand() {
+  const { localTime } = useSprite();
+  const dur = 3.0;
+  const introT = clamp(localTime / 0.6, 0, 1);
+  const eased = Easing.easeOutCubic(introT);
+  const tagT = clamp((localTime - 0.4) / 0.5, 0, 1);
+  const tagEased = Easing.easeOutCubic(tagT);
+  const exitFade = localTime > dur - 0.4 ? clamp((localTime - (dur - 0.4)) / 0.4, 0, 1) : 0;
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', opacity: 1 - exitFade, transform: `translateY(${(1 - eased) * 30 - exitFade * 20}px)` }}>
+      <div style={{ transform: `scale(${0.92 + eased * 0.08})`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 40 }}>
+        <ProxLogoForBg size={300} bg={PROX.black} />
+        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 132, letterSpacing: '-0.04em', color: PROX.paper, lineHeight: 1 }}>Proximity</div>
+      </div>
+      <div style={{ marginTop: 48, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, opacity: tagEased, transform: `translateY(${(1 - tagEased) * 12}px)` }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 28, fontWeight: 700, letterSpacing: '0.32em', textTransform: 'uppercase', color: PROX.red, textAlign: 'center' }}>St. Louis Housing Service</div>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 22, fontWeight: 700, letterSpacing: '0.42em', textTransform: 'uppercase', color: PROX.red, textAlign: 'center' }}>WashU Housing + Matchmaking Service</div>
+      </div>
+    </div>
+  );
+}
+
+function PhoneFrame({ children, scrollOffset = 0, glitch = 0 }) {
+  return (
+    <div style={{ position: 'relative', width: 380, height: 680, borderRadius: 48, background: PROX.ink, border: '3px solid rgba(255,255,255,0.12)', boxShadow: '0 30px 80px rgba(0,0,0,0.6), inset 0 0 0 8px #000', overflow: 'hidden', transform: `rotate(-6deg) translateX(${glitch}px)` }}>
+      <div style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', width: 110, height: 26, borderRadius: 14, background: '#000', zIndex: 5 }}/>
+      <div style={{ position: 'absolute', inset: 14, borderRadius: 36, background: '#1A1A1E', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 0, transform: `translateY(${-scrollOffset}px)`, willChange: 'transform' }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function FakeListing({ i, bad }) {
+  const tags = bad ? ['No reviews', '45 min from campus', '$$$'] : [];
+  return (
+    <div style={{ margin: '14px 14px', padding: 12, borderRadius: 14, background: '#26262B', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 12 }}>
+      <div style={{ width: 90, height: 90, borderRadius: 10, background: 'repeating-linear-gradient(135deg, #3a3a40 0 6px, #2e2e34 6px 12px)' }}/>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, paddingTop: 4 }}>
+        <div style={{ height: 10, width: '70%', background: 'rgba(255,255,255,0.18)', borderRadius: 4 }}/>
+        <div style={{ height: 8, width: '50%', background: 'rgba(255,255,255,0.1)', borderRadius: 4 }}/>
+        <div style={{ height: 8, width: '80%', background: 'rgba(255,255,255,0.08)', borderRadius: 4 }}/>
+        <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 9, color: '#ff7a72', padding: '3px 6px', background: 'rgba(229,50,43,0.18)', borderRadius: 4 }}>{tags[0] || '$2400'}</div>
+          {tags[1] && <div style={{ fontFamily: FONT_MONO, fontSize: 9, color: '#ffb6b2', padding: '3px 6px', background: 'rgba(229,50,43,0.12)', borderRadius: 4 }}>{tags[1]}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Scene2DoomScroll() {
+  const { localTime, duration } = useSprite();
+  const scroll = Easing.easeInQuad(clamp(localTime / 1.4, 0, 1)) * 1200;
+  const headlineT = clamp((localTime - 0.15) / 0.6, 0, 1);
+  const headlineEased = Easing.easeOutBack(headlineT);
+  const exitFade = localTime > duration - 0.4 ? clamp((localTime - (duration - 0.4)) / 0.4, 0, 1) : 0;
+  const strikeT = clamp((localTime - 1.45) / 0.25, 0, 1);
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity: 1 - exitFade }}>
+      <div style={{ position: 'absolute', right: -60, top: 280, opacity: 0.55, transform: `translateY(${(1 - headlineT) * 60}px)` }}>
+        <PhoneFrame scrollOffset={scroll} glitch={strikeT > 0 ? Math.sin(strikeT * 30) * 6 : 0}>
+          {[...Array(14)].map((_, i) => (<FakeListing key={i} i={i} bad={i % 2 === 0}/>))}
+        </PhoneFrame>
+        {strikeT > 0 && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: strikeT }}>
+            <div style={{ width: 220, height: 220, border: `8px solid ${PROX.red}`, borderRadius: '50%', transform: `rotate(-6deg) scale(${0.6 + strikeT * 0.4})`, position: 'relative' }}>
+              <div style={{ position: 'absolute', top: '50%', left: -20, right: -20, height: 8, background: PROX.red, transform: 'translateY(-50%) rotate(45deg)' }}/>
+            </div>
+          </div>
+        )}
+      </div>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 280, opacity: headlineT, transform: `translateY(${(1 - headlineEased) * 30}px)` }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 24, letterSpacing: '0.3em', textTransform: 'uppercase', color: PROX.red, marginBottom: 28 }}>stop —</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 130, fontWeight: 800, lineHeight: 0.92, letterSpacing: '-0.04em', color: PROX.paper }}>
+          Doom-<br/>scrolling<br/>
+          <span style={{ position: 'relative', display: 'inline-block', color: PROX.paper }}>
+            Zillow
+            <div style={{ position: 'absolute', left: -10, right: -10, top: '52%', height: 10, background: PROX.red, transformOrigin: 'left center', transform: `scaleX(${clamp((localTime - 0.95) / 0.4, 0, 1)})` }}/>
+          </span>
+          <span style={{ color: PROX.red }}>.</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewCard({ delay, localTime, name, year, rating, body, x, y, rotate }) {
+  const t = clamp((localTime - delay) / 0.5, 0, 1);
+  const eased = Easing.easeOutCubic(t);
+  return (
+    <div style={{ position: 'absolute', left: x, top: y, width: 460, padding: '28px 32px', borderRadius: 22, background: PROX.paper, color: PROX.ink, boxShadow: '0 20px 50px rgba(0,0,0,0.45)', transform: `translateY(${(1 - eased) * 60}px) rotate(${rotate}deg)`, opacity: t, fontFamily: FONT_DISPLAY }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <div style={{ width: 44, height: 44, borderRadius: '50%', background: PROX.red, color: PROX.paper, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 20 }}>{name[0]}</div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 22, letterSpacing: '-0.01em' }}>{name}</div>
+          <div style={{ fontSize: 16, color: PROX.mute }}>{year}</div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 2, color: PROX.red, fontSize: 22 }}>{'★'.repeat(rating)}<span style={{ color: '#d8d2c8' }}>{'★'.repeat(5 - rating)}</span></div>
+      </div>
+      <div style={{ fontSize: 22, lineHeight: 1.35, color: PROX.ink, fontWeight: 500 }}>"{body}"</div>
+    </div>
+  );
+}
+
+function Scene3Reviews() {
+  const { localTime, duration } = useSprite();
+  const headT = clamp(localTime / 0.5, 0, 1);
+  const headEased = Easing.easeOutCubic(headT);
+  const exitFade = localTime > duration - 0.4 ? clamp((localTime - (duration - 0.4)) / 0.4, 0, 1) : 0;
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity: 1 - exitFade }}>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 200, opacity: headT, transform: `translateY(${(1 - headEased) * 30}px)` }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 24, letterSpacing: '0.3em', textTransform: 'uppercase', color: PROX.red, marginBottom: 24 }}>start —</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 88, fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.035em', color: PROX.paper }}>Real reviews<br/>from real<br/><span style={{ color: PROX.red }}>Wash U</span> students.</div>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 880 }}>
+        <ReviewCard delay={0.3} localTime={localTime} name="Maya" year="Junior · Olin" rating={5} body="Walking distance to Mallinckrodt. Landlord actually responds." x={70} y={0} rotate={-2.5}/>
+        <ReviewCard delay={0.55} localTime={localTime} name="Jordan" year="Senior · Sam Fox" rating={4} body="Cheaper than the Lofts and the radiators don't sound like ghosts." x={520} y={210} rotate={3}/>
+        <ReviewCard delay={0.8} localTime={localTime} name="Priya" year="Sophomore · A&S" rating={5} body="Found 4 roommates through Proximity. Saved me from Facebook hell." x={130} y={430} rotate={-1.5}/>
+      </div>
+    </div>
+  );
+}
+
+function Scene4Filters() {
+  const { localTime, duration } = useSprite();
+  const headT = clamp(localTime / 0.5, 0, 1);
+  const exitFade = localTime > duration - 0.35 ? clamp((localTime - (duration - 0.35)) / 0.35, 0, 1) : 0;
+  const pills = [
+    { label: '< 10 min walk to Brookings', filled: true, delay: 0.25 },
+    { label: 'Sublet-friendly', filled: false, delay: 0.4 },
+    { label: 'Utilities included', filled: false, delay: 0.55 },
+    { label: 'Pet-okay (cat ✓)', filled: true, delay: 0.7 },
+    { label: 'Furnished', filled: false, delay: 0.85 },
+    { label: 'Loop shuttle stop', filled: true, delay: 1.0 },
+    { label: 'No co-signer', filled: false, delay: 1.15 },
+    { label: 'Quiet building', filled: false, delay: 1.3 },
+  ];
+  return (
+    <div style={{ position: 'absolute', inset: 0, opacity: 1 - exitFade }}>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 260, opacity: headT, transform: `translateY(${(1 - Easing.easeOutCubic(headT)) * 30}px)` }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 24, letterSpacing: '0.3em', textTransform: 'uppercase', color: PROX.red, marginBottom: 24 }}>filters that matter —</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 92, fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.035em', color: PROX.paper }}>Built for<br/><span style={{ color: PROX.red }}>students</span>,<br/>not investors.</div>
+      </div>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 1000, display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+        {pills.map((p, i) => { const t = clamp((localTime - p.delay) / 0.35, 0, 1); const eased = Easing.easeOutBack(t); return (<div key={i} style={{ opacity: t, transform: `translateY(${(1 - eased) * 24}px) scale(${0.9 + eased * 0.1})` }}><Pill filled={p.filled}>{p.label}</Pill></div>); })}
+      </div>
+    </div>
+  );
+}
+
+function Scene5CTA() {
+  const { localTime } = useSprite();
+  const wmT = clamp(localTime / 0.5, 0, 1);
+  const tagT = clamp((localTime - 0.4) / 0.5, 0, 1);
+  const ctaT = clamp((localTime - 0.7) / 0.5, 0, 1);
+  const ctaEased = Easing.easeOutBack(ctaT);
+  const urlT = clamp((localTime - 1.1) / 0.4, 0, 1);
+  const pulse = 1 + Math.sin(localTime * 4) * 0.015 * clamp((localTime - 1.2) * 2, 0, 1);
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ position: 'absolute', top: 220, opacity: wmT, transform: `translateY(${(1 - Easing.easeOutCubic(wmT)) * 30}px)`, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+        <ProxLogoForBg size={170} bg={PROX.black} />
+        <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 84, letterSpacing: '-0.035em', color: PROX.paper, lineHeight: 1 }}>Proximity</div>
+      </div>
+      <div style={{ position: 'absolute', top: 600, left: 80, right: 80, textAlign: 'center', opacity: tagT, transform: `translateY(${(1 - Easing.easeOutCubic(tagT)) * 24}px)` }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: 88, fontWeight: 800, lineHeight: 0.95, letterSpacing: '-0.04em', color: PROX.paper }}>Better apartments.<br/>Honest reviews.<br/><span style={{ color: PROX.red }}>Zero stress.</span></div>
+      </div>
+      <div style={{ position: 'absolute', top: 1180, opacity: ctaT, transform: `scale(${0.85 + ctaEased * 0.15 * pulse})` }}>
+        <div style={{ padding: '38px 80px', background: PROX.red, color: PROX.paper, fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 56, letterSpacing: '-0.02em', borderRadius: 999, boxShadow: '0 20px 60px rgba(229,50,43,0.45), 0 0 0 6px rgba(229,50,43,0.12)', display: 'inline-flex', alignItems: 'center', gap: 24 }}>
+          Find Your Place
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: PROX.paper, color: PROX.red, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 900 }}>→</div>
+        </div>
+      </div>
+      <div style={{ position: 'absolute', bottom: 180, left: 0, right: 0, textAlign: 'center', opacity: urlT, transform: `translateY(${(1 - Easing.easeOutCubic(urlT)) * 18}px)` }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: 36, letterSpacing: '0.04em', color: PROX.paper }}>useproximity.org</div>
+        <div style={{ marginTop: 14, fontFamily: FONT_MONO, fontSize: 18, letterSpacing: '0.32em', textTransform: 'uppercase', color: 'rgba(247,243,238,0.5)' }}>swipe up · tap link</div>
+      </div>
+    </div>
+  );
+}
+
+function StoryAd() {
+  return (
+    <>
+      <BackgroundLayer/>
+      <Sprite start={0}    end={3.0}>  <Scene1Brand/>      </Sprite>
+      <Sprite start={3.0}  end={5.4}>  <Scene2DoomScroll/> </Sprite>
+      <Sprite start={5.4}  end={7.8}>  <Scene3Reviews/>    </Sprite>
+      <Sprite start={7.8}  end={10.0}> <Scene4Filters/>    </Sprite>
+      <Sprite start={10.0} end={12.5}> <Scene5CTA/>        </Sprite>
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <Stage width={1080} height={1920} duration={12.5} background="#0B0B0C">
+    <StoryAd/>
+  </Stage>
+);
+</script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+REEL 2 HOOK 2 — GLASS SHATTER REBUILD PLAN
+=============================================
+File: reeledits/two/reel2hook2/index.html
+Video asset: no_baseball_bat__more_like_a_r.mp4 (copy from root to reel2hook2/)
+
+CURRENT STATE:
+- Hook uses a CSS/SVG Voronoi shard generator for the glass crack effect
+- No video — purely code-generated fracture lines + polygon shards
+- Crack radiates from center, shards shift outward slightly, then reassemble
+- Text lands over the fractured frame, then "So we fixed it." after reassemble
+- Body scenes (form, cards, chat, listing, CTA) follow after beat drop
+
+WHAT NEEDS TO CHANGE (HOOK ONLY — body scenes stay untouched):
+
+═══════════════════════════════════════
+PHASE 1: REPLACE SVG SHATTER WITH VIDEO
+═══════════════════════════════════════
+
+The real glass shatter video replaces the generated SVG effect.
+
+Implementation:
+- Copy no_baseball_bat__more_like_a_r.mp4 to reel2hook2/ folder
+- Add <video> element, preloaded, muted initially (SFX engine handles audio)
+- Video plays on a white background at the crack moment
+- Remove: generateShards(), GlassShatterOverlay component, all SVG shard logic
+- Keep: SfxEngine (crack, reverseCrack, impact, beatDrop), all body scenes
+
+Video playback approach:
+- Preload video in an offscreen <video> tag on mount
+- At t=0.3 (crack start), call video.play()
+- Video fills the 1080x1920 frame with objectFit:'cover'
+- Video plays through the shatter, then we freeze on a frame or let it end
+- At reassemble time, either reverse the video (if short enough) or fade it out
+  while the clean white frame returns
+
+Fallback if video reverse isn't smooth:
+- Play video forward for the crack (0.3s → ~1.3s)
+- At reassemble (4.0s), crossfade video out + clean white in over 0.75s
+- The reverseCrack SFX still plays to sell the "repair" feel audibly
+
+═══════════════════════════════════════
+PHASE 2: REVISED HOOK TIMELINE
+═══════════════════════════════════════
+
+Keep the same structure, adjust to match spec exactly:
+
+t=0.0          Clean white frame. Silence.
+t=0.3          VIDEO PLAYS — glass shatters from center outward
+               SFX: crack() fires
+               Screen shake on impact
+t=0.3-0.8      Video plays through the shatter animation
+t=0.8          Video pauses/holds on cracked frame
+t=0.8-1.3      HOLD — cracked frame visible, silence, let viewer sit in it
+
+t=1.3          HIT 1: "The off campus housing market" drops in
+               Weighted drop animation (translateY + opacity)
+               SFX: impact()
+               Text lands OVER the cracked frame (video still visible behind)
+
+t=2.5          HIT 2: "is broken." lands — slightly slower, slightly larger
+               SFX: impact()
+               "broken." in Proximity red
+
+t=3.5-4.0      HOLD — cracked frame + both text lines together
+
+t=4.0-4.75     REASSEMBLE — pieces pull back together
+               Video fades out, clean white frame fades in
+               Text fades out during this
+               SFX: reverseCrack()
+               Duration: 0.75s, not instant, feels like repair
+
+t=4.75         "So we fixed it." lands on clean white frame
+               Single hit, Proximity red, bold typography
+               SFX: impact()
+
+t=5.25         Proximity logo mark fades/assembles below text
+
+t=5.75         BEAT DROP — hard cut into form demo
+               SFX: beatDrop()
+               First form field appears on the beat
+
+═══════════════════════════════════════
+PHASE 3: SceneHook COMPONENT REWRITE
+═══════════════════════════════════════
+
+Replace current SceneHook:
+
+1. Add videoRef = React.useRef(null) in App
+2. Preload video element in JSX (hidden, muted, playsInline)
+3. In SceneHook:
+   - At t >= 0.3: show video element (position absolute, full frame, objectFit cover)
+   - At t >= 0.8: pause video (video.pause() via effect)
+   - Screen shake: same math as current (sin/cos based, decays with crackP)
+   - Text 1 ("The off campus housing market"): same animation as current
+   - Text 2 ("is broken."): same animation as current
+   - At t >= 4.0: fade video opacity to 0 over 0.75s, white bg shows through
+   - Text fades out during reassemble (same as current reassFade logic)
+   - "So we fixed it." + logo: same as current
+   - Beat drop exit: same opacity fade
+
+4. Remove from codebase:
+   - generateShards() function (lines 242-352)
+   - GlassShatterOverlay component (lines 358-470)
+   - All references to GlassShatterOverlay in SceneHook
+
+═══════════════════════════════════════
+PHASE 4: VIDEO TIMING CONSIDERATIONS
+═══════════════════════════════════════
+
+Need to check the video:
+- How long is the actual shatter? If it's longer than 0.5s (0.3→0.8), we may
+  need to adjust hold timing or playback rate
+- The video should show glass cracking outward from center — if the impact
+  point isn't centered, may need objectPosition adjustment
+- Video likely has its own audio — keep it muted, our SFX engine handles sound
+
+If the video is very short (< 0.5s):
+- Let it play to completion, then hold on last frame (video.pause() at end)
+
+If the video is long (> 2s):
+- Set video.playbackRate = 2.0 or higher to compress into ~0.5s
+- Or seek to a good frame and pause
+
+═══════════════════════════════════════
+WHAT STAYS THE SAME (NO CHANGES)
+═══════════════════════════════════════
+
+- All body scenes: formTitle, formFill, formSubmit, cards, notSure, chat, listing, tour, cta
+- SfxEngine class (crack, reverseCrack, impact, beatDrop, tick, pop, whoosh, etc.)
+- Chrome header component
+- Logo component
+- Timeline TB (body timelines)
+- Timeline TH structure (same timestamps, just video replaces SVG)
+- All SFX trigger fire() calls for body scenes
+- Tap-to-play splash, replay button, zoom scaling
+
+═══════════════════════════════════════
+FILES TO MODIFY
+═══════════════════════════════════════
+
+1. COPY: root/no_baseball_bat__more_like_a_r.mp4 → reel2hook2/shatter.mp4
+2. EDIT: reel2hook2/index.html
+   - Add <link rel="preload"> for video
+   - Remove generateShards() and GlassShatterOverlay
+   - Rewrite SceneHook to use <video> instead of SVG overlay
+   - Add videoRef and playback control in App/effects
+   - Keep everything else identical

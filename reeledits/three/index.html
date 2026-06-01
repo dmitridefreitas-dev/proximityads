@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+<title>Proximity — Reel 3: Campus Distance</title>
+<link rel="icon" href="data:,"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="preload" as="image" href="favicons/zillow.png"/>
+<link rel="preload" as="image" href="favicons/facebook.png"/>
+<link rel="preload" as="image" href="favicons/apartments.png"/>
+<link rel="preload" as="image" href="favicons/craigslist.png"/>
+<link rel="preload" as="image" href="favicons/reddit.png"/>
+<link rel="preload" as="image" href="favicons/trulia.png"/>
+<link rel="preload" as="image" href="favicons/google.png"/>
+<link rel="preload" as="image" href="favicons/instagram.png"/>
+<link rel="preload" as="image" href="listings/listing1.jpg"/>
+<link rel="preload" as="image" href="listings/listing2.jpg"/>
+<link rel="preload" as="image" href="listings/listing3.jpg"/>
+<link rel="preload" as="image" href="listings/listing4.jpg"/>
+<link rel="preload" as="image" href="listings/listing5.jpg"/>
+<link rel="preload" as="image" href="listings/listing6.jpg"/>
+<link rel="preload" as="image" href="fivenine.avif"/>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000}
+body{font-family:'Inter',system-ui,sans-serif}
+#root{position:fixed;inset:0}
+@keyframes pulse{0%{transform:scale(1);opacity:.7}70%{transform:scale(1.6);opacity:0}100%{transform:scale(1.6);opacity:0}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<script type="text/babel">
+
+const C={red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',dark:'#0A0A0A',gray:'#555555'};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ease={
+  outCubic:t=>(--t)*t*t+1,
+  outBack:t=>{const c=1.70158,d=c+1;return 1+d*Math.pow(t-1,3)+c*Math.pow(t-1,2);},
+  outQuad:t=>t*(2-t),
+  outExpo:t=>t===1?1:1-Math.pow(2,-10*t),
+  inQuad:t=>t*t,
+};
+
+/* ── SFX ── */
+class SfxEngine{
+  constructor(){this.ctx=null;this.gains={master:null};}
+  ensureCtx(){
+    if(this.ctx)return;
+    this.ctx=new(window.AudioContext||window.webkitAudioContext)();
+    this.gains.master=this.ctx.createGain();
+    this.gains.master.gain.value=0.5;
+    this.gains.master.connect(this.ctx.destination);
+  }
+  tick(f=1000){this.ensureCtx();const c=this.ctx,n=c.currentTime;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.08,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.06);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+0.06);}
+  pop(){this.ensureCtx();const c=this.ctx,n=c.currentTime;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(500,n);o.frequency.exponentialRampToValueAtTime(250,n+0.12);g.gain.setValueAtTime(0.12,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.15);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+0.15);}
+  thump(){this.ensureCtx();const c=this.ctx,n=c.currentTime;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(90,n);o.frequency.exponentialRampToValueAtTime(30,n+0.25);g.gain.setValueAtTime(0.18,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.3);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+0.3);}
+  snap(){this.ensureCtx();const c=this.ctx,n=c.currentTime;const buf=c.createBuffer(1,c.sampleRate*0.08,c.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.006));const s=c.createBufferSource(),g=c.createGain();s.buffer=buf;g.gain.setValueAtTime(0.4,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.05);s.connect(g);g.connect(this.gains.master);s.start(n);}
+  click(){
+    this.ensureCtx();const c=this.ctx,n=c.currentTime;
+    /* Loud descending tone — unmistakable on phone speakers */
+    const o=c.createOscillator(),g=c.createGain();
+    o.type='sine';o.frequency.setValueAtTime(1200,n);o.frequency.exponentialRampToValueAtTime(400,n+0.12);
+    g.gain.setValueAtTime(0.8,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.18);
+    o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+0.2);
+    /* Noise burst for attack texture */
+    const buf=c.createBuffer(1,c.sampleRate*0.1,c.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*0.02));
+    const s=c.createBufferSource(),g2=c.createGain();s.buffer=buf;
+    g2.gain.setValueAtTime(0.6,n);g2.gain.exponentialRampToValueAtTime(0.001,n+0.08);
+    s.connect(g2);g2.connect(c.destination);s.start(n);
+    /* Sub thump */
+    const o2=c.createOscillator(),g3=c.createGain();
+    o2.type='sine';o2.frequency.setValueAtTime(150,n);o2.frequency.exponentialRampToValueAtTime(50,n+0.15);
+    g3.gain.setValueAtTime(0.5,n);g3.gain.exponentialRampToValueAtTime(0.001,n+0.2);
+    o2.connect(g3);g2.connect(c.destination);o2.start(n);o2.stop(n+0.2);
+  }
+  ding(f=880){this.ensureCtx();const c=this.ctx,n=c.currentTime;const o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.06,n);g.gain.exponentialRampToValueAtTime(0.001,n+0.5);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+0.5);}
+}
+
+/* ── TIMELINE ── */
+const T={
+  video:     {s:0,    e:6.5},
+  youGotIn:  {s:0.5,  e:2.5},
+  browser:   {s:2.5,  e:6.5},
+  findText:  {s:2.8,  e:6.5},
+  snapAt:    6.5,
+  proxIntro: {s:6.5,  e:10.2},
+  btnShow:   8.2,
+  btnClick:  9.2,
+  phone:     {s:10.2, e:17.4},
+  cta:       {s:17.4, e:21.9},
+};
+const TOTAL=21.9;
+
+/* ── LOGO ── */
+function Logo({size=80,color=C.red}){
+  return <svg width={size} height={size} viewBox="0 0 1024 1024" fill="none"><path fill={color} d="M493.79,197.29c269-14.78,435.48,278.96,281.02,501.02-124.36,178.79-385.55,182.34-516.21,8.58-153.66-204.35-19.87-495.59,235.19-509.6ZM294,493c7.72-101.79,94.97-187.62,196.35-196.15l1.65-1.35v-55c-.75-1.02-.87-1.09-2.04-1.09-12.34-.02-28.8,3.34-40.97,6.07-117.3,26.35-204.7,127.56-213.99,247.51h59ZM534,239v58c102.23,6.2,192.16,93.31,199,196h59c-8.97-99.59-71.09-189.28-162.32-230.18-30.53-13.68-62.3-21.02-95.68-23.82ZM643.65,392.35c-108.21-112.35-302.62-42.24-309.69,115.11-5.96,132.6,131.1,225.7,252.72,171.72,111.54-49.51,142.58-197.93,56.97-286.83ZM293,534h-58c8.95,135.6,120.94,249.96,257,259v-58c-104.94-7.21-190.33-97.44-199-201ZM792,534h-59c-7.05,103.61-94.74,193.93-199,201v58c135.99-8.8,249.07-123.29,258-259Z"/><path fill={color} d="M588,646h-58v-28.5c0-.56-2.27-3.45-3.02-3.98-2.84-1.99-20.61-2.23-24.46-1.5-1.45.28-5.52,3.91-5.52,4.48v29.5h-58v-142l74.42-36.99c25.04,12.37,50.84,24,74.58,38.49v140.5ZM473.74,530.17c-2.98.61-6.27,4.32-6.68,7.39,1.26,15.77-1.88,34.59-.08,49.96,1.19,10.15,16.4,10.82,17.93-.11,1.33-9.54,1.25-39.2.11-48.93-.63-5.36-6.01-9.39-11.29-8.31ZM512.77,530.18c-3.27.35-7.55,2.67-7.71,6.38,1.01,16.08-1.56,34.15-.11,49.98,1.08,11.88,15.6,10.73,16.99,1.89,1.31-8.33,1.25-42.43.11-50.99-.55-4.15-5.08-7.72-9.28-7.27ZM548.73,530.17c-2.98.62-6.26,4.32-6.68,7.38,1.08,15.64-1.66,33.6-.05,48.94,1.19,11.34,15.43,11.48,16.94,1.95,1.38-8.68,1.16-40.86.08-49.97-.6-5.07-4.96-9.4-10.29-8.3Z"/><path fill={color} d="M405,488v44.5c0,3.26,7.48,14.82,7.93,21.14.43,5.95-3.86,9.72-3.86,12.86,0,1.93,5.55,13.08,6.48,17.45,1.13,5.31,2.96,16.6-1.58,20.52-2.84,2.45-23.83,2.18-27.34.39-6.09-3.1-3.5-15.25-2.34-21.07.93-4.67,6.22-15.23,6.3-17.29.09-2.31-2.89-6.38-3.36-9.25-1.76-10.74,5.72-16,6.79-24.74,1.87-15.28-1.48-34.17.01-49.86-6.47-3.76-13.5-6.59-20.07-10.19-1.13-.62-2.44.07-1.97-1.97l139.57-76.52,4.15.79,138.26,73.72-56.32,25.21-86.05-38.67-86.35,40.8c-5.74,1-14.43-6.85-20.25-7.83Z"/></svg>;
+}
+
+/* ── Chrome header ── */
+function Chrome({visible}){
+  if(!visible)return null;
+  return(
+    <div style={{position:'absolute',top:48,left:48,right:48,zIndex:200,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{display:'flex',alignItems:'center',gap:14}}>
+        <Logo size={48} color={C.red}/>
+        <span style={{fontWeight:900,fontSize:24,color:C.dark,letterSpacing:'-.02em'}}>Proximity</span>
+      </div>
+      <span style={{fontWeight:700,fontSize:16,letterSpacing:'.16em',textTransform:'uppercase',color:C.red}}>FOR WASHU STUDENTS</span>
+    </div>
+  );
+}
+
+/* ── Tab bar tab (real favicons, slide-in support) ── */
+function TabBarTab({icon,label,active,dim,narrow,animStyle}){
+  return(
+    <div style={{display:'flex',alignItems:'center',gap:7,padding:'8px 10px',width:narrow?50:(active?200:150),height:34,background:active?C.white:'transparent',borderRadius:active?'8px 8px 0 0':'0',borderRight:active?'none':'1px solid rgba(0,0,0,.06)',flexShrink:0,opacity:dim?0.5:1,...animStyle}}>
+      <img src={icon} width={14} height={14} style={{borderRadius:3,flexShrink:0}}/>
+      {!narrow&&<span style={{fontSize:12,color:active?C.dark:'#888',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,fontWeight:500}}>{label}</span>}
+      {!narrow&&<span style={{color:'rgba(0,0,0,.3)',fontSize:12,lineHeight:1}}>×</span>}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SCENE 1: VIDEO + "YOU GOT IN." + BROWSER WINDOW + SNAP
+   ══════════════════════════════════════════════ */
+const BROWSER_TABS=[
+  {icon:'favicons/zillow.png',label:'St. Louis Apartments — Zillow'},
+  {icon:'favicons/facebook.png',label:'WashU Housing 2026 — Facebook'},
+  {icon:'favicons/apartments.png',label:'Apartments near Clayton, MO'},
+  {icon:'favicons/craigslist.png',label:'craigslist — apts / housing'},
+  {icon:'favicons/reddit.png',label:'r/WUSTL — anyone know a...'},
+  {icon:'favicons/trulia.png',label:'Trulia — 63130 listings'},
+  {icon:'favicons/google.png',label:'apartments near washu'},
+  {icon:'favicons/instagram.png',label:'DM with @stlloft.rentals'},
+];
+
+const BROWSER_LISTINGS=[
+  {img:'listings/listing1.jpg',price:'$2,400/mo',addr:'4920 Pershing Ave #2B',meta:'2 bd · 1 ba · 850 sqft',tag:'★ 4.8'},
+  {img:'listings/listing2.jpg',price:'$1,950/mo',addr:'6112 Kingsbury Pl',meta:'Studio · 1 ba · 420 sqft',tag:'★ 4.5'},
+  {img:'listings/listing3.jpg',price:'$3,100/mo',addr:'720 Demun Ave #4',meta:'3 bd · 2 ba · 1100 sqft',tag:'★ 4.9'},
+  {img:'listings/listing4.jpg',price:'$1,750/mo',addr:'5079 Westminster Pl',meta:'1 bd · 1 ba · 600 sqft',tag:'★ 4.3'},
+  {img:'listings/listing5.jpg',price:'$2,150/mo',addr:'6040 Pershing Ave',meta:'2 bd · 1 ba · 780 sqft',tag:'★ 4.7'},
+  {img:'listings/listing6.jpg',price:'$1,650/mo',addr:'716 Westgate Ave',meta:'1 bd · 1 ba · 540 sqft',tag:'★ 4.6'},
+];
+
+function SceneIntro({t}){
+  if(t>=T.snapAt)return null;
+  const fadeIn=clamp(t/0.3,0,1);
+
+  /* "You got in." */
+  const textIn=t>=T.youGotIn.s?clamp((t-T.youGotIn.s)/0.5,0,1):0;
+  const textOut=t>=T.youGotIn.e-0.4?clamp((t-(T.youGotIn.e-0.4))/0.4,0,1):0;
+  const textOp=textIn*(1-textOut);
+
+  /* Browser window */
+  const bLt=t>=T.browser.s?t-T.browser.s:0;
+  const browserIn=clamp(bLt/0.7,0,1);
+  const bEased=ease.outQuad(browserIn);
+  const snapped=t>=T.snapAt;
+
+  /* "Now find somewhere to live near it." */
+  const findIn=t>=T.findText.s?clamp((t-T.findText.s)/0.5,0,1):0;
+  const findOp=snapped?0:findIn;
+
+
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:10,background:'#000'}}>
+      {/* Brookings Hall image — fills vertical frame */}
+      <div style={{position:'absolute',inset:0,opacity:fadeIn}}>
+        <img src="brookings.jpg" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+      </div>
+      <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 60%,rgba(0,0,0,0.25) 100%)',pointerEvents:'none'}}/>
+
+      {/* "You got in." */}
+      {textOp>0&&(
+        <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',zIndex:5,opacity:textOp,transform:`translateY(${(1-ease.outCubic(textIn))*40}px)`}}>
+          <div style={{fontWeight:900,fontSize:128,letterSpacing:'-.05em',color:C.white,lineHeight:1,textShadow:'0 4px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)'}}>
+            You got in.
+          </div>
+        </div>
+      )}
+
+      {/* "Now find somewhere to live near it." — top of browser scene */}
+      {findOp>0&&(
+        <div style={{position:'absolute',left:50,right:50,top:340,zIndex:25,opacity:findOp,transform:`translateY(${(1-ease.outCubic(findIn))*25}px)`}}>
+          <div style={{fontWeight:900,fontSize:62,lineHeight:1.05,letterSpacing:'-.04em',color:C.white,textShadow:'0 4px 30px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.3)',textAlign:'center'}}>
+            Now find somewhere<br/>to live near it.
+          </div>
+        </div>
+      )}
+
+      {/* Browser window — reel2 style, light mode */}
+      {!snapped&&bLt>0&&(
+        <div style={{position:'absolute',left:30,right:30,top:560,height:1100,background:C.white,borderRadius:14,boxShadow:'0 30px 80px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.1)',border:'1px solid rgba(0,0,0,.08)',overflow:'hidden',opacity:bEased,transform:`translateY(${(1-bEased)*30}px) scale(${0.96+bEased*0.04})`,zIndex:20}}>
+          {/* Tab bar */}
+          <div style={{height:38,background:'#e8eaed',display:'flex',alignItems:'flex-end',paddingLeft:16,paddingRight:12,position:'relative'}}>
+            <div style={{position:'absolute',left:14,top:12,display:'flex',gap:7}}>
+              <div style={{width:12,height:12,borderRadius:'50%',background:'#FF5F57'}}/>
+              <div style={{width:12,height:12,borderRadius:'50%',background:'#FEBC2E'}}/>
+              <div style={{width:12,height:12,borderRadius:'50%',background:'#28C840'}}/>
+            </div>
+            <div style={{display:'flex',marginLeft:70,gap:0,overflow:'hidden',alignItems:'flex-end'}}>
+              {BROWSER_TABS.map((tab,i)=>{
+                const tabT=clamp((bLt-0.4-i*0.12)/0.4,0,1);
+                const tabE=ease.outCubic(tabT);
+                return <TabBarTab key={i} icon={tab.icon} label={tab.label} active={i===0} dim={i>2} narrow={i>=5}
+                  animStyle={{opacity:tabE,transform:`translateX(${(1-tabE)*20}px)`}}/>;
+              })}
+            </div>
+          </div>
+          {/* Address bar */}
+          <div style={{height:46,background:'#f1f3f4',display:'flex',alignItems:'center',gap:12,padding:'0 16px',borderBottom:'1px solid rgba(0,0,0,.06)'}}>
+            <div style={{display:'flex',gap:12,color:'rgba(0,0,0,.35)',fontSize:16}}><span>←</span><span>→</span><span>↻</span></div>
+            <div style={{flex:1,height:28,borderRadius:14,background:C.white,display:'flex',alignItems:'center',gap:8,padding:'0 12px',fontSize:13,color:'#5f6368',fontWeight:500,border:'1px solid rgba(0,0,0,.06)'}}>
+              <span style={{color:C.red,fontSize:11}}>🔒</span>
+              <span>zillow.com/st-louis-mo/apartments/</span>
+            </div>
+          </div>
+          {/* Listing content */}
+          <div style={{padding:24,display:'flex',flexDirection:'column',gap:16}}>
+            <div style={{fontWeight:700,fontSize:24,color:C.dark,marginBottom:4}}>312 apartments in St. Louis, MO</div>
+            {BROWSER_LISTINGS.map((r,i)=>(
+              <div key={i} style={{display:'flex',gap:16,alignItems:'center',padding:16,background:'#f8f9fa',borderRadius:14,border:'1px solid rgba(0,0,0,.04)'}}>
+                <img src={r.img} style={{width:120,height:95,borderRadius:10,objectFit:'cover',flexShrink:0,display:'block'}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:800,fontSize:24,color:C.dark,letterSpacing:'-.02em'}}>{r.price}</div>
+                  <div style={{fontSize:18,fontWeight:600,color:'#555',marginTop:3}}>{r.addr}</div>
+                  <div style={{fontSize:14,color:'#999',marginTop:3,fontWeight:500}}>{r.meta}</div>
+                </div>
+                <div style={{fontSize:18,fontWeight:800,color:'#B8860B',padding:'8px 14px',background:'rgba(245,158,11,0.1)',borderRadius:8,letterSpacing:'.02em',flexShrink:0}}>{r.tag}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SCENE 2: PROXIMITY INTRO — cinematic logo + text
+   ══════════════════════════════════════════════ */
+function SceneProxIntro({t}){
+  if(t<T.proxIntro.s-0.1||t>T.phone.s+0.3)return null;
+  const lt=t-T.proxIntro.s;
+  /* Cinematic logo entrance */
+  const logoRaw=clamp((lt-0.05)/0.7,0,1);
+  const logoE=ease.outBack(logoRaw);
+  const logoBlur=(1-Math.min(logoRaw*2.5,1))*6;
+
+  /* "Proximity." text — hits after logo settles */
+  const hit1=clamp((lt-0.85)/0.2,0,1);
+  const hit1E=ease.outCubic(hit1);
+
+  /* Subtitle */
+  const hit2=clamp((lt-1.5)/0.3,0,1);
+  const hit2E=ease.outCubic(hit2);
+
+  /* "Browse Listings" button */
+  const btnLt=t>=T.btnShow?t-T.btnShow:0;
+  const btnIn=clamp(btnLt/0.4,0,1);
+  const btnE=ease.outBack(btnIn);
+  const clicked=t>=T.btnClick;
+  const clickElapsed=clicked?t-T.btnClick:0;
+  /* press down (0-0.12s), hold (0.12-0.35s), release+transition (0.35s+) */
+  const pressDown=clicked?clamp(clickElapsed/0.12,0,1):0;
+  const pressHold=clicked&&clickElapsed>0.12&&clickElapsed<0.35;
+  const pressUp=clicked?clamp((clickElapsed-0.35)/0.15,0,1):0;
+  const pressScale=pressDown>0?(pressHold||pressUp<1?0.92:0.92+pressUp*0.08):1;
+  const btnScale=(0.85+btnE*0.15)*pressScale;
+
+  /* Cursor */
+  const cursorIn=clamp((btnLt-0.6)/0.4,0,1);
+
+  /* Smooth zoom transition after click — wait for press to complete */
+  const transT=clicked?clamp((clickElapsed-0.55)/0.4,0,1):0;
+  const transE=ease.inQuad(transT);
+  const sceneScale=1+transE*0.15;
+  const sceneOp=1-transE;
+
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:sceneOp,transform:`scale(${sceneScale})`}}>
+      {/* All content centered as one group */}
+      <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+        {/* Cinematic logo */}
+        <div style={{
+          opacity:logoRaw,
+          transform:`scale(${0.15+logoE*0.85}) rotate(${(1-logoE)*-10}deg)`,
+          filter:`blur(${logoBlur}px)`,
+          marginBottom:30,
+          willChange:'transform,opacity,filter',
+        }}>
+          <Logo size={200} color={C.red}/>
+        </div>
+
+        {/* "Proximity." */}
+        <div style={{opacity:hit1,transform:`scale(${0.8+hit1E*0.2}) translateY(${(1-hit1E)*20}px)`}}>
+          <div style={{fontWeight:900,fontSize:116,letterSpacing:'-.05em',color:C.red,lineHeight:1}}>Proximity.</div>
+        </div>
+
+        {/* Subtitle */}
+        <div style={{marginTop:28,opacity:hit2,transform:`translateY(${(1-hit2E)*14}px)`,maxWidth:820,textAlign:'center'}}>
+          <div style={{fontWeight:600,fontSize:38,letterSpacing:'-.01em',color:C.gray,lineHeight:1.3}}>
+            Off-campus housing with<br/>on-campus knowledge.
+          </div>
+        </div>
+
+        {/* "Browse Listings" button — inside the centered group */}
+        {btnIn>0&&(
+          <div style={{marginTop:48,opacity:btnIn,transform:`scale(${btnScale})`,position:'relative'}}>
+          <div style={{
+            padding:'28px 60px',background:pressDown>0?'#c9302a':C.red,color:C.white,fontWeight:800,fontSize:32,
+            borderRadius:999,boxShadow:pressDown>0?'0 4px 16px rgba(226,58,47,.25)':'0 14px 44px rgba(226,58,47,.4)',
+            letterSpacing:'-.01em',
+          }}>
+            Browse Listings
+          </div>
+          {/* Cursor glides in then clicks */}
+          {cursorIn>0&&(
+            <div style={{
+              position:'absolute',left:'60%',top:'70%',
+              opacity:cursorIn,
+              transform:`translate(${(1-ease.outCubic(cursorIn))*30}px, ${(1-ease.outCubic(cursorIn))*25}px) scale(${pressDown>0&&pressUp<1?0.8:1})`,
+              pointerEvents:'none',
+            }}>
+              <svg width="32" height="38" viewBox="0 0 24 28" fill="none">
+                <path d="M5.5 0L5.5 17.5L9.5 14L13 22L16 20.5L12.5 13L18 12.5L5.5 0Z" fill={C.dark} stroke="#fff" strokeWidth="1.2"/>
+              </svg>
+            </div>
+          )}
+        </div>
+      )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SCENE 3: FIVE-NINE LISTING — fills the page
+   ══════════════════════════════════════════════ */
+function WalkTimeRow({label,minutes,delay,lt}){
+  const t=clamp((lt-delay)/0.5,0,1);
+  const e=ease.outBack(t);
+  const displayMin=Math.round(lerp(0,minutes,ease.outCubic(t)));
+  return(
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 28px',borderRadius:16,background:C.white,border:'1.5px solid rgba(0,0,0,0.05)',boxShadow:'0 2px 8px rgba(0,0,0,.03)',opacity:t,transform:`translateX(${(1-e)*40}px)`,marginBottom:16}}>
+      <div style={{display:'flex',alignItems:'center',gap:14}}>
+        <div style={{width:38,height:38,borderRadius:10,background:'#FBE6E4',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2" fill={C.red}/><path d="M12 8c-1.5 0-2 1-2 2v3h-1l1 5h1v4h2v-4h1l1-5h-1v-3c0-1-.5-2-2-2z" fill={C.red}/></svg>
+        </div>
+        <div style={{fontWeight:700,fontSize:24,color:C.dark}}>{label}</div>
+      </div>
+      <div style={{fontWeight:900,fontSize:26,color:C.red,minWidth:80,textAlign:'right'}}>{displayMin} min</div>
+    </div>
+  );
+}
+
+function ReviewBubble({name,text,stars,delay,lt}){
+  const t=clamp((lt-delay)/0.5,0,1);
+  const e=ease.outCubic(t);
+  return(
+    <div style={{padding:'20px 24px',borderRadius:16,background:C.white,border:'1.5px solid rgba(0,0,0,.05)',boxShadow:'0 2px 8px rgba(0,0,0,.03)',opacity:t,transform:`translateY(${(1-e)*20}px)`,marginBottom:16}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:8}}>
+        <div style={{width:36,height:36,borderRadius:'50%',background:C.red,color:C.white,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:16}}>{name[0]}</div>
+        <div style={{fontWeight:700,fontSize:20,color:C.dark}}>{name}</div>
+        <div style={{color:'#F59E0B',fontSize:16,marginLeft:'auto'}}>{'★'.repeat(stars)}</div>
+      </div>
+      <div style={{fontSize:20,color:C.gray,lineHeight:1.4,fontStyle:'italic'}}>"{text}"</div>
+    </div>
+  );
+}
+
+function SceneListing({t}){
+  if(t<T.phone.s-0.2||t>T.cta.s+0.3)return null;
+  const lt=t-T.phone.s;
+  const cardIn=clamp(lt/0.6,0,1);
+  const ce=ease.outCubic(cardIn);
+  const walkLt=lt>=1.0?lt-1.0:0;
+  const reviewLt=lt>=3.8?lt-3.8:0;
+  const exitT=t>T.cta.s-0.4?clamp((t-(T.cta.s-0.4))/0.4,0,1):0;
+
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:17,background:C.offWhite,opacity:1-exitT}}>
+      <Chrome visible={true}/>
+      <div style={{
+        position:'absolute',top:140,left:40,right:40,bottom:16,
+        borderRadius:32,background:C.white,overflow:'hidden',
+        boxShadow:'0 20px 60px rgba(0,0,0,.10)',
+        border:'1.5px solid rgba(0,0,0,.05)',
+        opacity:cardIn,transform:`translateY(${(1-ce)*50}px)`,
+        display:'flex',flexDirection:'column',
+      }}>
+        <div style={{width:'100%',height:580,overflow:'hidden',flexShrink:0,position:'relative'}}>
+          <img src="fivenine.avif" style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
+          <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg,transparent 50%,rgba(0,0,0,0.35) 100%)'}}/>
+        </div>
+        <div style={{padding:'36px 36px 18px',borderBottom:'1px solid rgba(0,0,0,.06)',flexShrink:0}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div>
+              <div style={{fontWeight:900,fontSize:40,color:C.dark,letterSpacing:'-.025em'}}>Five-Nine</div>
+              <div style={{fontSize:20,color:C.gray,marginTop:4}}>Kingsbury Ave, University City, MO 63130</div>
+              <div style={{fontSize:18,color:C.gray,marginTop:4}}>3 bed | 1 bath</div>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:6,marginTop:6}}>
+              <span style={{color:'#F59E0B',fontSize:22}}>★</span>
+              <span style={{fontWeight:800,fontSize:24,color:C.dark}}>5.0</span>
+            </div>
+          </div>
+        </div>
+        <div style={{padding:'22px 32px',flex:1,overflow:'hidden'}}>
+          <div style={{fontWeight:800,fontSize:15,letterSpacing:'.14em',textTransform:'uppercase',color:C.red,marginBottom:14}}>NEARBY PLACES</div>
+          <WalkTimeRow label="Village House"     minutes={16} delay={0}   lt={walkLt}/>
+          <WalkTimeRow label="Sumers Rec Center" minutes={18} delay={0.7} lt={walkLt}/>
+          <WalkTimeRow label="Olin Library"      minutes={24} delay={1.4} lt={walkLt}/>
+          <WalkTimeRow label="DUC"               minutes={24} delay={2.1} lt={walkLt}/>
+          <div style={{fontWeight:800,fontSize:15,letterSpacing:'.14em',textTransform:'uppercase',color:C.red,marginTop:22,marginBottom:14,opacity:clamp(reviewLt/0.3,0,1)}}>REVIEWS</div>
+          <ReviewBubble name="Anonymous" text="10 min walk to WashU and the Loop. Brand new kitchen and bathroom, spacious bedrooms, warm homey vibe." stars={5} delay={0.3} lt={reviewLt}/>
+          <ReviewBubble name="Ariana K." text="Great location. Kind of expensive but makes sense because it's close to WashU." stars={5} delay={0.8} lt={reviewLt}/>
+          <ReviewBubble name="Sophie K." text="Apartment is nice and spacious. I like the in unit washer and dryer." stars={5} delay={1.3} lt={reviewLt}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SCENE 4: CTA
+   ══════════════════════════════════════════════ */
+function SceneCTA({t}){
+  if(t<T.cta.s)return null;
+  const lt=t-T.cta.s;
+  const logoT=clamp(lt/0.5,0,1);
+  const le=ease.outCubic(logoT);
+  const tagT=clamp((lt-0.5)/0.5,0,1);
+  const te=ease.outCubic(tagT);
+  const btnT=clamp((lt-1.2)/0.5,0,1);
+  const be=ease.outBack(btnT);
+  const freeT=clamp((lt-1.8)/0.4,0,1);
+
+  return(
+    <div style={{position:'absolute',inset:0,zIndex:20,background:C.offWhite,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 60px'}}>
+      <div style={{flex:0.8}}/>
+      <div style={{opacity:logoT,transform:`translateY(${(1-le)*40}px)`,display:'flex',flexDirection:'column',alignItems:'center',gap:22}}>
+        <Logo size={160} color={C.red}/>
+        <div style={{fontWeight:900,fontSize:80,letterSpacing:'-.04em',color:C.dark}}>Proximity</div>
+      </div>
+      <div style={{flex:0.4,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div style={{textAlign:'center',opacity:tagT,transform:`translateY(${(1-te)*24}px)`}}>
+          <div style={{fontWeight:800,fontSize:48,lineHeight:1.15,letterSpacing:'-.03em',color:C.dark}}>
+            Minutes from campus.<br/><span style={{color:C.red}}>Miles from stress.</span>
+          </div>
+        </div>
+      </div>
+      <div style={{opacity:btnT,transform:`scale(${0.85+be*0.15})`}}>
+        <div style={{padding:'30px 64px',background:C.red,color:C.white,fontWeight:800,fontSize:34,borderRadius:999,boxShadow:'0 16px 52px rgba(226,58,47,.35)',letterSpacing:'-.01em'}}>
+          useproximity.org
+        </div>
+      </div>
+      <div style={{marginTop:30,opacity:freeT}}>
+        <div style={{fontSize:18,fontWeight:700,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>
+      </div>
+      <div style={{flex:1}}/>
+    </div>
+  );
+}
+
+/* ── APP ── */
+function App(){
+  const[started,setStarted]=React.useState(false);
+  const[t,setT]=React.useState(0);
+  const[done,setDone]=React.useState(false);
+  const[zoom,setZoom]=React.useState(1);
+  const sfxRef=React.useRef(null);
+  const firedRef=React.useRef(new Set());
+
+  React.useEffect(()=>{
+    const m=()=>setZoom(Math.min(window.innerWidth/1080,window.innerHeight/1920));
+    m();window.addEventListener('resize',m);return()=>window.removeEventListener('resize',m);
+  },[]);
+
+
+  React.useEffect(()=>{
+    if(!started||done)return;
+    const sfx=sfxRef.current;if(!sfx)return;
+    const fired=firedRef.current;
+    const fire=(k,time,fn)=>{if(t>=time&&!fired.has(k)){fired.add(k);fn();}};
+    fire('browserIn',T.browser.s,()=>sfx.thump());
+    fire('tab0',T.browser.s+0.3,()=>sfx.tick(900));
+    fire('tab1',T.browser.s+0.48,()=>sfx.tick(1000));
+    fire('tab2',T.browser.s+0.66,()=>sfx.tick(1100));
+    fire('tab3',T.browser.s+0.84,()=>sfx.tick(1200));
+    fire('tab4',T.browser.s+1.02,()=>sfx.tick(1300));
+    fire('snap',T.snapAt,()=>sfx.snap());
+    fire('proxLogo',T.proxIntro.s+0.05,()=>sfx.thump());
+    fire('proxHit1',T.proxIntro.s+0.85,()=>sfx.thump());
+    fire('proxHit2',T.proxIntro.s+1.5,()=>sfx.pop());
+    fire('btnShow',T.btnShow,()=>sfx.pop());
+    fire('btnClick',T.btnClick,()=>sfx.click());
+    fire('phoneIn',T.phone.s,()=>sfx.thump());
+    fire('w1',T.phone.s+1.1,()=>sfx.pop());
+    fire('w2',T.phone.s+1.8,()=>sfx.pop());
+    fire('w3',T.phone.s+2.5,()=>sfx.pop());
+    fire('w4',T.phone.s+3.2,()=>sfx.pop());
+    fire('ctaIn',T.cta.s+0.1,()=>sfx.thump());
+    fire('ctaDing',T.cta.s+1.8,()=>sfx.ding(880));
+  },[t,started,done]);
+
+  React.useEffect(()=>{
+    if(!started)return;
+    let raf;const startMs=performance.now();
+    const tick=now=>{
+      const elapsed=(now-startMs)/1000;
+      setT(elapsed);
+      if(elapsed>=TOTAL){setDone(true);return;}
+      raf=requestAnimationFrame(tick);
+    };
+    raf=requestAnimationFrame(tick);
+    return()=>cancelAnimationFrame(raf);
+  },[started]);
+
+  const begin=async()=>{
+    if(!sfxRef.current)sfxRef.current=new SfxEngine();
+    sfxRef.current.ensureCtx();
+    try{await sfxRef.current.ctx.resume();}catch{}
+    firedRef.current=new Set();
+    setStarted(true);setDone(false);setT(0);
+  };
+  const restart=()=>{setStarted(false);setDone(false);setT(0);setTimeout(begin,60);};
+
+  return(
+    <div style={{position:'fixed',inset:0,display:'flex',alignItems:'center',justifyContent:'center',background:'#000'}}>
+      <div style={{width:1080,height:1920,position:'relative',overflow:'hidden',zoom,background:C.offWhite}}>
+        <SceneIntro t={t}/>
+        <SceneProxIntro t={t}/>
+        <SceneListing t={t}/>
+        <SceneCTA t={t}/>
+
+        {!started&&(
+          <div onClick={begin} style={{position:'absolute',inset:0,zIndex:500,background:'#0A0A0B',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer',gap:20}}>
+            <Logo size={130} color={C.red}/>
+            <div style={{fontWeight:900,fontSize:68,letterSpacing:'-.04em',color:'#fff'}}>Proximity</div>
+            <div style={{marginTop:8,fontWeight:700,fontSize:18,letterSpacing:'.3em',textTransform:'uppercase',color:'rgba(255,255,255,0.45)'}}>campus distance reel · sound on</div>
+            <div style={{marginTop:48,width:110,height:110,borderRadius:'50%',background:C.red,display:'inline-flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+              <div style={{width:0,height:0,borderLeft:'30px solid #fff',borderTop:'20px solid transparent',borderBottom:'20px solid transparent',marginLeft:10}}/>
+              <span style={{position:'absolute',inset:0,borderRadius:'50%',background:C.red,animation:'pulse 1.8s ease-out infinite',zIndex:-1}}/>
+            </div>
+          </div>
+        )}
+
+        {done&&(
+          <div onClick={restart} style={{position:'absolute',inset:0,zIndex:500,background:'rgba(10,10,11,0.5)',display:'flex',alignItems:'flex-end',justifyContent:'center',paddingBottom:100,cursor:'pointer'}}>
+            <div style={{padding:'18px 48px',background:'rgba(255,255,255,.12)',border:'1px solid rgba(255,255,255,.2)',backdropFilter:'blur(12px)',color:'#fff',borderRadius:999,fontWeight:700,fontSize:22,letterSpacing:'.15em',textTransform:'uppercase'}}>↻ tap to replay</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>
