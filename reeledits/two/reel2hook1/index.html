@@ -539,16 +539,16 @@ function SceneCards({t}){
   const pressScale=pressDown>0?(pressUp>0?1-pressUp*0.05:0.92+0.03*(1-ease.outCubic(pressDown))):1;
   const pressedState=pressDown>0.5;
   return(
-    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'center',justifyContent:'center'}}>
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:110}}>
       <div style={{width:'100%',padding:'0 48px'}}>
-        <div style={{fontWeight:800,fontSize:28,color:C.dark,marginBottom:20}}>Your matches</div>
-        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        <div style={{fontWeight:800,fontSize:28,color:C.dark,marginBottom:16}}>Your matches</div>
+        <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <MatchCard lt={lt} delay={0.2} badge={true} name="6040 Kingsbury Ave" hood="St. Louis, MO 63112" price="$1,395/mo" specs="2 bed | 1 bath | Standard" walkCampus="19 min" walkShuttle="1 min" photo={PHOTOS.card1} pills={['Walking distance','Near nightlife']}/>
           <MatchCard lt={lt} delay={0.5} badge={false} name="Tanjiers" hood="5522 Delmar Blvd, St. Louis, MO 63112" price="$938-$1,169/mo" specs="0-2 bed | 1 bath | Standard" walkCampus="34 min" walkShuttle="2 min" photo={PHOTOS.card2} pills={['Near restaurants']}/>
         </div>
-        <div style={{marginTop:28,textAlign:'center',opacity:nst,transform:`translateY(${(1-ease.outCubic(nst))*20}px)`}}>
+        <div style={{marginTop:20,textAlign:'center',opacity:nst,transform:`translateY(${(1-ease.outCubic(nst))*20}px)`}}>
           <div style={{
-            display:'inline-block',padding:'20px 52px',borderRadius:999,
+            display:'inline-block',padding:'16px 48px',borderRadius:999,
             border:`2.5px solid ${pressedState?C.red:'rgba(0,0,0,.12)'}`,
             fontWeight:700,fontSize:26,
             color:pressedState?C.red:C.gray,
