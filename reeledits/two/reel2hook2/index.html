@@ -222,7 +222,7 @@ function SceneHook({t,vidFwdRef,vidRevRef}){
       {showVideo&&(
         <div style={{position:'absolute',inset:0,overflow:'hidden',transform:`translate(${shakeX}px,${shakeY}px)`}}>
           <video ref={vidFwdRef} muted={false} playsInline preload="auto"
-            style={{width:'100%',height:'100%',objectFit:'cover',transform:'scale(1.25)',transformOrigin:'center center',display:'block'}}
+            style={{width:'100%',height:'100%',objectFit:'cover',transform:'scale(1.25) translateX(-10%)',transformOrigin:'center center',display:'block'}}
           >
             <source src="glass.mp4" type="video/mp4"/>
           </video>
@@ -233,7 +233,7 @@ function SceneHook({t,vidFwdRef,vidRevRef}){
       {showReverse&&(
         <div style={{position:'absolute',inset:0,overflow:'hidden'}}>
           <video ref={vidRevRef} muted={false} playsInline preload="auto"
-            style={{width:'100%',height:'100%',objectFit:'cover',transform:'scale(1.25)',transformOrigin:'center center',display:'block'}}
+            style={{width:'100%',height:'100%',objectFit:'cover',transform:'scale(1.25) translateX(-10%)',transformOrigin:'center center',display:'block'}}
           >
             <source src="glass-reverse.mp4" type="video/mp4"/>
           </video>
