@@ -16,6 +16,13 @@ h1{font-size:36px;font-weight:900;letter-spacing:-.03em;margin-bottom:8px}
 a{display:block;padding:20px 24px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:#fff;text-decoration:none;font-weight:700;font-size:18px;transition:background .15s}
 a:hover{background:rgba(226,58,47,.15);border-color:#E23A2F}
 a span{display:block;font-size:13px;font-weight:400;color:rgba(255,255,255,.4);margin-top:4px}
+.card{padding:20px 24px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px}
+.card .t{font-weight:700;font-size:18px;color:#fff;margin-bottom:14px}
+.card .t span{display:block;font-size:13px;font-weight:400;color:rgba(255,255,255,.4);margin-top:4px}
+.modes{display:flex;gap:8px}
+.modes a{flex:1;text-align:center;padding:10px 0;font-size:14px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px}
+.modes a.dark{background:rgba(0,0,0,.35)}
+.modes a:hover{background:rgba(226,58,47,.18);border-color:#E23A2F}
 </style>
 </head>
 <body>
@@ -23,13 +30,14 @@ a span{display:block;font-size:13px;font-weight:400;color:rgba(255,255,255,.4);m
 <div class="sub">Draft Collection</div>
 
 <div class="section">
-<h2>Reeledits (Latest)</h2>
+<h2>Reeledits (Latest) — pick Light or Dark</h2>
 <div class="grid">
-<a href="reeledits/one/index.html">Reel 1<span>Matchmaking flow</span></a>
-<a href="reeledits/two/reel2hook1/index.html">Reel 2 — Hook 1<span>Two guys talking + VHS rewind</span></a>
-<a href="reeledits/two/reel2hook2/index.html">Reel 2 — Hook 2<span>Glass shatter video</span></a>
-<a href="reeledits/two/reel2hook3/index.html">Reel 2 — Hook 3<span>Screenshot pile-on</span></a>
-<a href="reeledits/three/index.html">Reel 3<span>Tab chaos + Brookings drone</span></a>
+<div class="card"><div class="t">Reel 1<span>5 tabs / zero answers</span></div><div class="modes"><a href="reeledits/one/index.html">Light</a><a class="dark" href="reeledits/one/index.html?mode=dark">Dark</a></div></div>
+<div class="card"><div class="t">Reel 2 — Hook 1<span>Two guys talking + VHS rewind</span></div><div class="modes"><a href="reeledits/two/reel2hook1/index.html">Light</a><a class="dark" href="reeledits/two/reel2hook1/index.html?mode=dark">Dark</a></div></div>
+<div class="card"><div class="t">Reel 2 — Hook 2<span>Glass shatter video</span></div><div class="modes"><a href="reeledits/two/reel2hook2/index.html">Light</a><a class="dark" href="reeledits/two/reel2hook2/index.html?mode=dark">Dark</a></div></div>
+<div class="card"><div class="t">Reel 2 — Hook 3<span>Screenshot pile-on</span></div><div class="modes"><a href="reeledits/two/reel2hook3/index.html">Light</a><a class="dark" href="reeledits/two/reel2hook3/index.html?mode=dark">Dark</a></div></div>
+<div class="card"><div class="t">Reel 3<span>Tab chaos + Brookings drone</span></div><div class="modes"><a href="reeledits/three/index.html">Light</a><a class="dark" href="reeledits/three/index.html?mode=dark">Dark</a></div></div>
+<div class="card"><div class="t">Reel 2 — Hook 1 (landscape)<span>16:9 cut</span></div><div class="modes"><a href="reeledits/two/reel2hook1/landscape.html">Light</a><a class="dark" href="reeledits/two/reel2hook1/landscape.html?mode=dark">Dark</a></div></div>
 </div>
 </div>
 

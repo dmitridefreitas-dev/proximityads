@@ -30,10 +30,9 @@ body{font-family:'Inter',system-ui,sans-serif}
 /* ================================================================
    CONSTANTS & HELPERS
    ================================================================ */
-const C={
-  red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',
-  dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E',
-};
+const DARK=new URLSearchParams(location.search).get('mode')==='dark';
+const RM=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const C=DARK?{red:'#E23A2F',white:'#161618',offWhite:'#0B0B0C',redTint:'rgba(226,58,47,.16)',dark:'#F5F3EF',gray:'#9A9A9A',black:'#000000',green:'#22C55E',border:'rgba(255,255,255,.10)'}:{red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E',border:'rgba(0,0,0,.08)'};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const ease={
   outCubic:t=>(--t)*t*t+1,
@@ -57,7 +56,9 @@ class SfxEngine {
     this.ctx=new(window.AudioContext||window.webkitAudioContext)();
     this.gains.master=this.ctx.createGain();
     this.gains.master.gain.value=0.6;
-    this.gains.master.connect(this.ctx.destination);
+    const comp=this.ctx.createDynamicsCompressor();
+    comp.threshold.value=-10;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.18;
+    this.gains.master.connect(comp);comp.connect(this.ctx.destination);
   }
   startAmbient(duration=31){
     this.ensureCtx();const c=this.ctx,now=c.currentTime;
@@ -208,10 +209,10 @@ function Chrome({visible,variant='light'}){
    TIMELINE — adjusted for longer text holds & rewind
    ================================================================ */
 const T={
-  vidCheers:    {s:0.4,  e:6.0},   // twoguystalking.mov plays 0.4-6s (+1s)
+  vidCheers:    {s:0.4,  e:6.0},   // twoguystalking.mp4 plays 0.4-6s (+1s)
   textHow:      {s:6.0,  e:7.5},   // freeze + "So how exactly did we end up here?" 1.5s
   rewind:       {s:7.5,  e:9.0},   // VHS rewind 1s + grey hold 0.5s
-  vidSitting:   {s:9.0,  e:12.5},  // sitting.mov + zoom into phone (hard cut)
+  vidSitting:   {s:9.0,  e:12.5},  // sitting.mp4 + zoom into phone (hard cut)
   formTitle:    {s:12.5, e:13.8},  // "Find Your Place" title card
   formFill:     {s:13.8, e:19.0},  // Form fields fill (4 fields x 1.3s)
   formSubmit:   {s:19.0, e:20.2},  // Button pulse + tap
@@ -220,9 +221,9 @@ const T={
   chat:         {s:24.5, e:29.5},  // Concierge chat sequence
   listing:      {s:29.5, e:33.5},  // Full listing detail expansion
   tour:         {s:33.5, e:34.7},  // Tour request + confirm
-  cta:          {s:34.7, e:38.5},  // CTA outro
+  cta:          {s:34.7, e:37.0},  // CTA outro
 };
-const TOTAL=38.5;
+const TOTAL=37.0;
 
 /* ================================================================
    VHS / REWIND OVERLAY (grain, scanlines, glitch)
@@ -303,14 +304,14 @@ function SceneVideoAndRewind({t,videoRef}){
   /* During rewind: desaturation, brightness shifts, jitter. Grey hold keeps full grey. */
   const grayscale=rewProgress*100;
   const brightness=1-rewProgress*0.15;
-  const glitchX=inRewind?(Math.sin(t*80)*6+Math.sin(t*120)*3)*rewProgress:0;
-  const glitchY=inRewind?(Math.cos(t*60)*4)*rewProgress:0;
+  const glitchX=inRewind&&!RM?(Math.sin(t*80)*6+Math.sin(t*120)*3)*rewProgress:0;
+  const glitchY=inRewind&&!RM?(Math.cos(t*60)*4)*rewProgress:0;
   const videoScale=inRewind?1+rewProgress*0.08:isGreyHold?1.08:1;
 
   return(
     <div style={{position:'absolute',inset:0,zIndex:10,overflow:'hidden'}}>
       {/* Video element - stays visible (no opacity fade, sitting video hard-cuts on top) */}
-      <video ref={videoRef} src="twoguystalking.mov" playsInline muted
+      <video ref={videoRef} src="twoguystalking.mp4" playsInline muted
         style={{
           position:'absolute',inset:0,width:'110%',height:'100%',objectFit:'cover',
           filter:`grayscale(${grayscale}%) brightness(${brightness}) contrast(${1+rewProgress*0.2})`,
@@ -332,7 +333,7 @@ function SceneVideoAndRewind({t,videoRef}){
           opacity:howIn*(1-howOut),
         }}>
           <div style={{
-            fontWeight:700,fontSize:48,color:C.white,
+            fontWeight:700,fontSize:48,color:'#fff',
             textShadow:'0 4px 30px rgba(0,0,0,.8), 0 2px 8px rgba(0,0,0,.5)',
             fontStyle:'italic',letterSpacing:'-.01em',lineHeight:1.25,
           }}>
@@ -393,7 +394,7 @@ function SceneSitting({t,sittingRef}){
   const exitF=zoomProgress>0.6?clamp((zoomProgress-0.6)/0.4,0,1):0;
   return(
     <div style={{position:'absolute',inset:0,zIndex:20,overflow:'hidden',opacity:visible?1:0,pointerEvents:visible?'auto':'none'}}>
-      <video ref={sittingRef} src="sitting.mov" playsInline muted preload="auto"
+      <video ref={sittingRef} src="sitting.mp4" playsInline muted preload="auto"
         style={{
           position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',
           transform:`scale(${zoom})`,
@@ -465,7 +466,7 @@ function SceneForm({t}){
           <div style={{
             display:'inline-block',padding:'26px 60px',borderRadius:999,
             background:btnT>0.5?C.red:'rgba(226,58,47,.15)',
-            color:btnT>0.5?C.white:C.red,
+            color:btnT>0.5?'#fff':C.red,
             fontWeight:800,fontSize:30,
             boxShadow:btnT>0.5?'0 12px 36px rgba(226,58,47,.35)':'none',
           }}>Match me with places</div>
@@ -492,7 +493,7 @@ function MatchCard({name,hood,price,specs,walkCampus,walkShuttle,delay,lt,badge,
       opacity:t,transform:`translateY(${(1-e)*80}px)`,position:'relative',
     }}>
       {badge&&(
-        <div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'7px 14px',background:C.red,color:C.white,borderRadius:10,fontWeight:800,fontSize:15,letterSpacing:'.1em',textTransform:'uppercase'}}>TOP PICK</div>
+        <div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'7px 14px',background:C.red,color:'#fff',borderRadius:10,fontWeight:800,fontSize:15,letterSpacing:'.1em',textTransform:'uppercase'}}>TOP PICK</div>
       )}
       <img src={photo} style={{width:'100%',aspectRatio:'2/1',objectFit:'cover',display:'block'}}/>
       <div style={{padding:'14px 20px'}}>
@@ -515,7 +516,7 @@ function MatchCard({name,hood,price,specs,walkCampus,walkShuttle,delay,lt,badge,
         {pills&&pills.length>0&&(
           <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
             {pills.map((p,i)=>(
-              <div key={i} style={{padding:'5px 12px',borderRadius:999,background:C.red,color:C.white,fontSize:15,fontWeight:700}}>{p}</div>
+              <div key={i} style={{padding:'5px 12px',borderRadius:999,background:C.red,color:'#fff',fontSize:15,fontWeight:700}}>{p}</div>
             ))}
           </div>
         )}
@@ -572,7 +573,7 @@ function ChatBubble({from,text,delay,lt}){
       <div style={{
         maxWidth:'80%',padding:'22px 26px',borderRadius:22,
         borderBottomLeftRadius:isBot?4:22,borderBottomRightRadius:isBot?22:4,
-        background:isBot?C.white:C.red,color:isBot?C.dark:C.white,
+        background:isBot?C.white:C.red,color:isBot?C.dark:'#fff',
         fontSize:25,fontWeight:500,lineHeight:1.4,
         boxShadow:isBot?'0 4px 16px rgba(0,0,0,.06)':'0 4px 16px rgba(226,58,47,.2)',
       }}>{text}</div>
@@ -691,7 +692,7 @@ function SceneListing({t}){
           <div style={{marginTop:24}}>
             <div style={{
               textAlign:'center',padding:'22px 0',borderRadius:999,
-              background:confirmed?C.green:C.red,color:C.white,fontWeight:800,fontSize:28,
+              background:confirmed?C.green:C.red,color:'#fff',fontWeight:800,fontSize:28,
               boxShadow:confirmed?'0 6px 20px rgba(34,197,94,.3)':'0 6px 20px rgba(226,58,47,.3)',
               transform:`scale(${tourScale})`,
             }}>{confirmed?'✓ Tour Requested':'Request Tour'}</div>
@@ -720,7 +721,7 @@ function SceneCTA({t}){
         <div style={{fontWeight:800,fontSize:48,lineHeight:1.2,color:C.dark}}>Find your place.<br/><span style={{color:C.red}}>Skip the chaos.</span></div>
       </div>
       <div style={{marginTop:60,opacity:btnT,transform:`scale(${.85+ease.outBack(btnT)*.15*pulse})`}}>
-        <div style={{padding:'30px 60px',background:C.red,color:C.white,fontWeight:800,fontSize:34,borderRadius:999,boxShadow:'0 16px 48px rgba(226,58,47,.35)'}}>useproximity.org/matchmaking</div>
+        <div style={{padding:'30px 60px',background:C.red,color:'#fff',fontWeight:800,fontSize:34,borderRadius:999,boxShadow:'0 16px 48px rgba(226,58,47,.35)'}}>useproximity.org/matchmaking</div>
       </div>
       <div style={{marginTop:32,opacity:freeT}}>
         <div style={{fontSize:20,fontWeight:700,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>
@@ -887,7 +888,7 @@ function App(){
             <div style={{textAlign:'center',color:'#fff'}}>
               <div style={{width:140,height:140,margin:'0 auto 36px',color:C.red}}><Logo size={140} color={C.red}/></div>
               <div style={{fontWeight:900,fontSize:72,letterSpacing:'-.04em'}}>Proximity</div>
-              <div style={{marginTop:14,fontWeight:700,fontSize:20,letterSpacing:'.3em',textTransform:'uppercase',color:'rgba(255,255,255,.5)'}}>:30 spot - sound on</div>
+              <div style={{marginTop:14,fontWeight:700,fontSize:20,letterSpacing:'.3em',textTransform:'uppercase',color:'rgba(255,255,255,.5)'}}>:37 spot - sound on</div>
               <div style={{marginTop:56,width:120,height:120,borderRadius:'50%',background:C.red,display:'inline-flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
                 <div style={{width:0,height:0,borderLeft:'32px solid #fff',borderTop:'20px solid transparent',borderBottom:'20px solid transparent',marginLeft:10}}/>
                 <span style={{position:'absolute',inset:0,borderRadius:'50%',background:C.red,animation:'pulse 1.8s ease-out infinite',zIndex:-1}}/>

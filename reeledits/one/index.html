@@ -23,10 +23,9 @@ body{font-family:'Inter',system-ui,sans-serif}
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 <script type="text/babel">
 
-const C = {
-  red:'#E23A2F', white:'#FFFFFF', offWhite:'#FAFAFA', redTint:'#FBE6E4',
-  dark:'#0A0A0A', gray:'#555555', black:'#000000', green:'#22C55E',
-};
+const DARK=new URLSearchParams(location.search).get('mode')==='dark';
+const RM=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const C=DARK?{red:'#E23A2F',white:'#161618',offWhite:'#0B0B0C',redTint:'rgba(226,58,47,.16)',dark:'#F5F3EF',gray:'#9A9A9A',black:'#000000',green:'#22C55E',border:'rgba(255,255,255,.10)'}:{red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E',border:'rgba(0,0,0,.08)'};
 
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 const ease = {
@@ -45,7 +44,9 @@ class SfxEngine {
     this.ctx=new(window.AudioContext||window.webkitAudioContext)();
     this.gains.master=this.ctx.createGain();
     this.gains.master.gain.value=0.6;
-    this.gains.master.connect(this.ctx.destination);
+    const comp=this.ctx.createDynamicsCompressor();
+    comp.threshold.value=-10;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.18;
+    this.gains.master.connect(comp);comp.connect(this.ctx.destination);
   }
   startAmbient(duration=16){
     this.ensureCtx();const c=this.ctx,now=c.currentTime;
@@ -206,9 +207,9 @@ const T={
   intro:   {s:0,   e:2.8},
   tabs:    {s:2.8, e:6.6},
   reviews: {s:6.6, e:12.4},
-  cta:     {s:12.4,e:19.5},
+  cta:     {s:12.4,e:16.7},
 };
-const TOTAL=19.5;
+const TOTAL=16.7;
 
 /* ── Scene 1: Logo Intro ──────────────────────── */
 function SceneIntro({t}){
@@ -332,7 +333,7 @@ function ReviewCard({name,address,quote,rating,good,delay,lt,img,walk,price}){
           opacity:popT,zIndex:10,
         }}>
           <div style={{fontSize:22,color:'rgba(255,255,255,.9)',marginBottom:10}}>{stars}</div>
-          <div style={{fontSize:22,fontWeight:600,lineHeight:1.35,color:C.white,fontStyle:'italic'}}>"{quote}"</div>
+          <div style={{fontSize:22,fontWeight:600,lineHeight:1.35,color:'#fff',fontStyle:'italic'}}>"{quote}"</div>
           <div style={{marginTop:10,fontSize:16,fontWeight:800,color:'rgba(255,255,255,.85)'}}>— {name}</div>
         </div>
       )}
@@ -411,7 +412,7 @@ function SceneCTA({t}){
         </div>
       </div>
       <div style={{marginTop:64,opacity:btnT,transform:`scale(${(.85+be*.15)*btnScale})`}}>
-        <div style={{padding:'32px 64px',background:C.red,color:C.white,fontWeight:800,fontSize:36,letterSpacing:'-.01em',borderRadius:999,boxShadow:btnShadow,display:'flex',alignItems:'center',gap:20}}>
+        <div style={{padding:'32px 64px',background:btnBg,color:'#fff',fontWeight:800,fontSize:36,letterSpacing:'-.01em',borderRadius:999,boxShadow:btnShadow,display:'flex',alignItems:'center',gap:20}}>
           Browse listings or get matched
         </div>
       </div>
@@ -524,7 +525,7 @@ function App(){
             <div style={{textAlign:'center'}}>
               <div style={{margin:'0 auto 36px'}}><Logo size={180} color={C.red}/></div>
               <div style={{fontWeight:900,fontSize:80,letterSpacing:'-.04em',color:C.dark}}>Proximity</div>
-              <div style={{marginTop:14,fontWeight:700,fontSize:20,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>:15 spot - sound on</div>
+              <div style={{marginTop:14,fontWeight:700,fontSize:20,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>:16 spot - sound on</div>
               <div style={{marginTop:56,width:120,height:120,borderRadius:'50%',background:C.red,display:'inline-flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
                 <div style={{width:0,height:0,borderLeft:'32px solid #fff',borderTop:'20px solid transparent',borderBottom:'20px solid transparent',marginLeft:10}}/>
                 <span style={{position:'absolute',inset:0,borderRadius:'50%',background:C.red,animation:'pulse 1.8s ease-out infinite',zIndex:-1}}/>
@@ -535,7 +536,7 @@ function App(){
         )}
         {/* Replay */}
         {done&&(
-          <div onClick={restart} style={{position:'absolute',inset:0,zIndex:500,background:'rgba(250,250,250,.85)',display:'grid',placeItems:'center',cursor:'pointer'}}>
+          <div onClick={restart} style={{position:'absolute',inset:0,zIndex:500,background:DARK?'rgba(11,11,12,.88)':'rgba(250,250,250,.85)',display:'grid',placeItems:'center',cursor:'pointer'}}>
             <div style={{textAlign:'center'}}>
               <Logo size={120} color={C.red}/>
               <div style={{marginTop:24,fontWeight:900,fontSize:48,color:C.dark}}>Proximity</div>

@@ -36,7 +36,9 @@ body{font-family:'Inter',system-ui,sans-serif}
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
 <script type="text/babel">
 
-const C={red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E'};
+const DARK=new URLSearchParams(location.search).get('mode')==='dark';
+const RM=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const C=DARK?{red:'#E23A2F',white:'#161618',offWhite:'#0B0B0C',redTint:'rgba(226,58,47,.16)',dark:'#F5F3EF',gray:'#9A9A9A',black:'#000000',green:'#22C55E',border:'rgba(255,255,255,.10)'}:{red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E',border:'rgba(0,0,0,.08)'};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const ease={
   outCubic:t=>(--t)*t*t+1,
@@ -52,8 +54,10 @@ class SfxEngine{
     if(this.ctx)return;
     this.ctx=new(window.AudioContext||window.webkitAudioContext)();
     this.gains.master=this.ctx.createGain();
-    this.gains.master.gain.value=0.7;
-    this.gains.master.connect(this.ctx.destination);
+    this.gains.master.gain.value=0.6;
+    const comp=this.ctx.createDynamicsCompressor();
+    comp.threshold.value=-10;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.18;
+    this.gains.master.connect(comp);comp.connect(this.ctx.destination);
   }
   startAmbient(duration=30){
     this.ensureCtx();const c=this.ctx,now=c.currentTime;
@@ -196,7 +200,7 @@ function ScreenshotCard({data,visible,t}){
       left:data.x,
       top:data.y,
       width:data.w,
-      background:C.white,
+      background:'#FFFFFF',
       borderRadius:4,
       padding:'12px 12px 36px 12px',
       boxShadow:data.big
@@ -239,9 +243,9 @@ const TB={
   chat:     {s:TH_END+9.5,     e:TH_END+13.7},
   listing:  {s:TH_END+13.7,    e:TH_END+16.7},
   tour:     {s:TH_END+16.7,    e:TH_END+18.0},
-  cta:      {s:TH_END+18.0,    e:TH_END+21.7},
+  cta:      {s:TH_END+18.0,    e:TH_END+20.2},
 };
-const TOTAL=TH_END+21.7;
+const TOTAL=TH_END+20.2;
 
 /* ── Hook Scene ── */
 function SceneHook({t}){
@@ -286,7 +290,7 @@ function SceneHook({t}){
             }}>
               <div style={{
                 fontWeight:900,fontSize:88,letterSpacing:'-.04em',
-                color:C.white,textAlign:'center',lineHeight:1.1,
+                color:'#fff',textAlign:'center',lineHeight:1.1,
               }}>
                 Meet <span style={{color:C.red}}>Proximity.</span>
               </div>
@@ -358,7 +362,7 @@ function SceneForm({t}){
           <div style={{
             display:'inline-block',padding:'26px 60px',borderRadius:999,
             background:btnT>0.5?C.red:'rgba(226,58,47,.15)',
-            color:btnT>0.5?C.white:C.red,
+            color:btnT>0.5?'#fff':C.red,
             fontWeight:800,fontSize:30,
             boxShadow:btnT>0.5?'0 12px 36px rgba(226,58,47,.35)':'none',
           }}>Match me with places</div>
@@ -385,7 +389,7 @@ function MatchCard({name,hood,price,specs,walkCampus,walkShuttle,delay,lt,badge,
       opacity:t,transform:`translateY(${(1-e)*80}px)`,position:'relative',
     }}>
       {badge&&(
-        <div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'7px 14px',background:C.red,color:C.white,borderRadius:10,fontWeight:800,fontSize:15,letterSpacing:'.1em',textTransform:'uppercase'}}>TOP PICK</div>
+        <div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'7px 14px',background:C.red,color:'#fff',borderRadius:10,fontWeight:800,fontSize:15,letterSpacing:'.1em',textTransform:'uppercase'}}>TOP PICK</div>
       )}
       <img src={photo} style={{width:'100%',aspectRatio:'2/1',objectFit:'cover',display:'block'}}/>
       <div style={{padding:'14px 20px'}}>
@@ -408,7 +412,7 @@ function MatchCard({name,hood,price,specs,walkCampus,walkShuttle,delay,lt,badge,
         {pills&&pills.length>0&&(
           <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
             {pills.map((p,i)=>(
-              <div key={i} style={{padding:'5px 12px',borderRadius:999,background:C.red,color:C.white,fontSize:15,fontWeight:700}}>{p}</div>
+              <div key={i} style={{padding:'5px 12px',borderRadius:999,background:C.red,color:'#fff',fontSize:15,fontWeight:700}}>{p}</div>
             ))}
           </div>
         )}
@@ -465,7 +469,7 @@ function ChatBubble({from,text,delay,lt}){
       <div style={{
         maxWidth:'80%',padding:'22px 26px',borderRadius:22,
         borderBottomLeftRadius:isBot?4:22,borderBottomRightRadius:isBot?22:4,
-        background:isBot?C.white:C.red,color:isBot?C.dark:C.white,
+        background:isBot?C.white:C.red,color:isBot?C.dark:'#fff',
         fontSize:25,fontWeight:500,lineHeight:1.4,
         boxShadow:isBot?'0 4px 16px rgba(0,0,0,.06)':'0 4px 16px rgba(226,58,47,.2)',
       }}>{text}</div>
@@ -584,7 +588,7 @@ function SceneListing({t}){
           <div style={{marginTop:24}}>
             <div style={{
               textAlign:'center',padding:'22px 0',borderRadius:999,
-              background:confirmed?C.green:C.red,color:C.white,fontWeight:800,fontSize:28,
+              background:confirmed?C.green:C.red,color:'#fff',fontWeight:800,fontSize:28,
               boxShadow:confirmed?'0 6px 20px rgba(34,197,94,.3)':'0 6px 20px rgba(226,58,47,.3)',
               transform:`scale(${tourScale})`,
             }}>{confirmed?'✓ Tour Requested':'Request Tour'}</div>
@@ -613,7 +617,7 @@ function SceneCTA({t}){
         <div style={{fontWeight:800,fontSize:48,lineHeight:1.2,color:C.dark}}>Find your place.<br/><span style={{color:C.red}}>Skip the chaos.</span></div>
       </div>
       <div style={{marginTop:60,opacity:btnT,transform:`scale(${.85+ease.outBack(btnT)*.15*pulse})`}}>
-        <div style={{padding:'30px 60px',background:C.red,color:C.white,fontWeight:800,fontSize:34,borderRadius:999,boxShadow:'0 16px 48px rgba(226,58,47,.35)'}}>useproximity.org/matchmaking</div>
+        <div style={{padding:'30px 60px',background:C.red,color:'#fff',fontWeight:800,fontSize:34,borderRadius:999,boxShadow:'0 16px 48px rgba(226,58,47,.35)'}}>useproximity.org/matchmaking</div>
       </div>
       <div style={{marginTop:32,opacity:freeT}}>
         <div style={{fontSize:20,fontWeight:700,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>

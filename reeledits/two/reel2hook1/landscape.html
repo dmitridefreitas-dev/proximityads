@@ -29,10 +29,9 @@ body{font-family:'Inter',system-ui,sans-serif}
    layout: left panel for text/form, right for cards/visuals.
    ─────────────────────────────────────────────────────── */
 
-const C={
-  red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',
-  dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E',
-};
+const DARK=new URLSearchParams(location.search).get('mode')==='dark';
+const RM=typeof matchMedia!=='undefined'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+const C=DARK?{red:'#E23A2F',white:'#161618',offWhite:'#0B0B0C',redTint:'rgba(226,58,47,.16)',dark:'#F5F3EF',gray:'#9A9A9A',black:'#000000',green:'#22C55E',border:'rgba(255,255,255,.10)'}:{red:'#E23A2F',white:'#FFFFFF',offWhite:'#FAFAFA',redTint:'#FBE6E4',dark:'#0A0A0A',gray:'#555555',black:'#000000',green:'#22C55E',border:'rgba(0,0,0,.08)'};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const ease={
   outCubic:t=>(--t)*t*t+1,
@@ -44,7 +43,7 @@ const ease={
 
 class SfxEngine{
   constructor(){this.ctx=null;this.gains={master:null};}
-  ensureCtx(){if(this.ctx)return;this.ctx=new(window.AudioContext||window.webkitAudioContext)();this.gains.master=this.ctx.createGain();this.gains.master.gain.value=0.6;this.gains.master.connect(this.ctx.destination);}
+  ensureCtx(){if(this.ctx)return;this.ctx=new(window.AudioContext||window.webkitAudioContext)();this.gains.master=this.ctx.createGain();this.gains.master.gain.value=0.6;const comp=this.ctx.createDynamicsCompressor();comp.threshold.value=-10;comp.ratio.value=4;comp.attack.value=0.003;comp.release.value=0.18;this.gains.master.connect(comp);comp.connect(this.ctx.destination);}
   tick(f=1000){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(.3,n);g.gain.exponentialRampToValueAtTime(.001,n+.08);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.08);}
   pop(){this.ensureCtx();const c=this.ctx,n=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(600,n);o.frequency.exponentialRampToValueAtTime(200,n+.1);g.gain.setValueAtTime(.4,n);g.gain.exponentialRampToValueAtTime(.001,n+.15);o.connect(g);g.connect(this.gains.master);o.start(n);o.stop(n+.15);}
   whoosh(p='mid'){this.ensureCtx();const c=this.ctx,n=c.currentTime,b=c.createBuffer(1,c.sampleRate*.3,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(c.sampleRate*.08));const s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();s.buffer=b;f.type='bandpass';f.frequency.value=p==='high'?4000:p==='low'?800:2000;f.Q.value=1.5;g.gain.setValueAtTime(.25,n);g.gain.exponentialRampToValueAtTime(.001,n+.25);s.connect(f);f.connect(g);g.connect(this.gains.master);s.start(n);}
@@ -91,10 +90,10 @@ function SceneCheers({t,videoRef}){
   const howOut=t>=T.rewind.s?clamp((t-T.rewind.s)/0.3,0,1):0;
   return(
     <div style={{position:'absolute',inset:0,zIndex:10}}>
-      <video ref={videoRef} src="twoguystalking.mov" playsInline muted style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',filter:`grayscale(${rewT*100}%) brightness(${1-rewT*.3})`}}/>
+      <video ref={videoRef} src="twoguystalking.mp4" playsInline muted style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',filter:`grayscale(${rewT*100}%) brightness(${1-rewT*.3})`}}/>
       {t>=T.textHow.s&&t<T.rewind.e&&(
         <div style={{position:'absolute',top:'50%',left:0,right:0,textAlign:'center',transform:'translateY(-50%)',opacity:howIn*(1-howOut)}}>
-          <div style={{fontWeight:600,fontSize:36,color:C.white,textShadow:'0 4px 24px rgba(0,0,0,.7)',fontStyle:'italic'}}>So how exactly did we end up here?</div>
+          <div style={{fontWeight:600,fontSize:36,color:'#fff',textShadow:'0 4px 24px rgba(0,0,0,.7)',fontStyle:'italic'}}>So how exactly did we end up here?</div>
         </div>
       )}
       {t>=T.vidCheers.e&&!inRewind&&(
@@ -113,7 +112,7 @@ function SceneSitting({t,sittingRef}){
   const exitF=zoomProgress>0.6?clamp((zoomProgress-0.6)/0.4,0,1):0;
   return(
     <div style={{position:'absolute',inset:0,zIndex:20,overflow:'hidden',opacity:visible?1:0,pointerEvents:visible?'auto':'none'}}>
-      <video ref={sittingRef} src="sitting.mov" playsInline muted preload="auto" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transform:`scale(${zoom})`,transformOrigin:'50% 55%'}}/>
+      <video ref={sittingRef} src="sitting.mp4" playsInline muted preload="auto" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',transform:`scale(${zoom})`,transformOrigin:'50% 55%'}}/>
       <div style={{position:'absolute',inset:0,background:`rgba(250,250,250,${exitF})`}}/>
     </div>
   );
@@ -158,7 +157,7 @@ function SceneForm({t}){
           );
         })}
         <div style={{marginTop:20,textAlign:'center'}}>
-          <div style={{display:'inline-block',padding:'16px 40px',borderRadius:999,background:btnT>.5?C.red:'rgba(226,58,47,.15)',color:btnT>.5?C.white:C.red,fontWeight:800,fontSize:22,boxShadow:btnT>.5?'0 8px 24px rgba(226,58,47,.3)':'none'}}>Match me with places</div>
+          <div style={{display:'inline-block',padding:'16px 40px',borderRadius:999,background:btnT>.5?C.red:'rgba(226,58,47,.15)',color:btnT>.5?'#fff':C.red,fontWeight:800,fontSize:22,boxShadow:btnT>.5?'0 8px 24px rgba(226,58,47,.3)':'none'}}>Match me with places</div>
         </div>
       </div>
       <div style={{flex:1,background:'linear-gradient(135deg,rgba(226,58,47,.04),rgba(226,58,47,.08))',display:'flex',alignItems:'center',justifyContent:'center',borderLeft:'1px solid rgba(0,0,0,.06)'}}>
@@ -191,7 +190,7 @@ function SceneCards({t}){
           const ct=clamp((lt-cd.delay)/0.5,0,1),ce=ease.outBack(ct);
           return(
             <div key={i} style={{flex:1,borderRadius:20,background:C.white,overflow:'hidden',boxShadow:'0 8px 32px rgba(0,0,0,.08)',border:'1.5px solid rgba(0,0,0,.06)',opacity:ct,transform:`translateY(${(1-ce)*60}px)`,position:'relative'}}>
-              {cd.badge&&<div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'6px 12px',background:C.red,color:C.white,borderRadius:8,fontWeight:800,fontSize:12,letterSpacing:'.08em',textTransform:'uppercase'}}>TOP PICK</div>}
+              {cd.badge&&<div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'6px 12px',background:C.red,color:'#fff',borderRadius:8,fontWeight:800,fontSize:12,letterSpacing:'.08em',textTransform:'uppercase'}}>TOP PICK</div>}
               <div style={{width:'100%',height:240,background:'linear-gradient(135deg,#e8e0d8,#d4ccc4)'}}/>
               <div style={{padding:'20px 24px'}}>
                 <div style={{fontWeight:800,fontSize:24,color:C.dark}}>{cd.name}</div>
@@ -235,7 +234,7 @@ function SceneChat({t}){
           const bt=clamp((lt-b.delay)/0.4,0,1);
           return(
             <div key={i} style={{display:'flex',justifyContent:b.from==='bot'?'flex-start':'flex-end',marginBottom:12,opacity:bt,transform:`translateY(${(1-ease.outCubic(bt))*16}px)`}}>
-              <div style={{maxWidth:'85%',padding:'14px 18px',borderRadius:16,background:b.from==='bot'?C.white:C.red,color:b.from==='bot'?C.dark:C.white,fontSize:20,fontWeight:500,lineHeight:1.4,boxShadow:b.from==='bot'?'0 2px 8px rgba(0,0,0,.06)':'0 2px 8px rgba(226,58,47,.2)'}}>{b.text}</div>
+              <div style={{maxWidth:'85%',padding:'14px 18px',borderRadius:16,background:b.from==='bot'?C.white:C.red,color:b.from==='bot'?C.dark:'#fff',fontSize:20,fontWeight:500,lineHeight:1.4,boxShadow:b.from==='bot'?'0 2px 8px rgba(0,0,0,.06)':'0 2px 8px rgba(226,58,47,.2)'}}>{b.text}</div>
             </div>
           );
         })}
@@ -282,7 +281,7 @@ function SceneListing({t}){
         </div>
         <div style={{marginTop:10}}><div style={{display:'inline-block',padding:'5px 12px',borderRadius:8,background:'rgba(34,197,94,.1)',fontSize:14,fontWeight:700,color:C.green}}>Utilities Included</div></div>
         <div style={{marginTop:24}}>
-          <div style={{textAlign:'center',padding:'16px 0',borderRadius:999,background:confirmed?C.green:C.red,color:C.white,fontWeight:800,fontSize:22,boxShadow:confirmed?'0 6px 20px rgba(34,197,94,.3)':'0 6px 20px rgba(226,58,47,.3)'}}>{confirmed?'✓ Tour Requested':'Request Tour'}</div>
+          <div style={{textAlign:'center',padding:'16px 0',borderRadius:999,background:confirmed?C.green:C.red,color:'#fff',fontWeight:800,fontSize:22,boxShadow:confirmed?'0 6px 20px rgba(34,197,94,.3)':'0 6px 20px rgba(226,58,47,.3)'}}>{confirmed?'✓ Tour Requested':'Request Tour'}</div>
         </div>
       </div>
     </div>
@@ -305,7 +304,7 @@ function SceneCTA({t}){
           <div style={{fontWeight:800,fontSize:36,lineHeight:1.2,color:C.dark}}>Find your place.<br/><span style={{color:C.red}}>Skip the chaos.</span></div>
         </div>
         <div style={{opacity:btnT,transform:`scale(${.85+ease.outBack(btnT)*.15*pulse})`}}>
-          <div style={{padding:'20px 48px',background:C.red,color:C.white,fontWeight:800,fontSize:26,borderRadius:999,boxShadow:'0 12px 36px rgba(226,58,47,.35)'}}>useproximity.org/matchmaking</div>
+          <div style={{padding:'20px 48px',background:C.red,color:'#fff',fontWeight:800,fontSize:26,borderRadius:999,boxShadow:'0 12px 36px rgba(226,58,47,.35)'}}>useproximity.org/matchmaking</div>
         </div>
         <div style={{opacity:freeT,fontSize:15,fontWeight:700,letterSpacing:'.25em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>
       </div>
@@ -333,7 +332,7 @@ function App(){
     fire('chc',T.chat.s+3.1,()=>sfx.whoosh());fire('lo',T.listing.s+.1,()=>sfx.whoosh('high'));fire('tr',T.tour.s+.1,()=>sfx.pop());fire('tc',T.tour.s+.7,()=>sfx.confirm());fire('ci',T.cta.s+.1,()=>sfx.thump());
   },[t,started,done]);
 
-  React.useEffect(()=>{if(!started)return;const v=vidRef.current;if(!v)return;if(t>=T.vidCheers.s&&t<T.freeze.s){if(v.paused)try{v.play()}catch{};if(v.currentTime>5)v.pause();}else{if(!v.paused)v.pause();}},[t,started]);
+  React.useEffect(()=>{if(!started)return;const v=vidRef.current;if(!v)return;if(t>=T.vidCheers.s&&t<T.vidCheers.e){if(v.paused)try{v.play()}catch{};if(v.currentTime>5)v.pause();}else{if(!v.paused)v.pause();}},[t,started]);
   const sitStartedRef=React.useRef(false);
   React.useEffect(()=>{if(!started)return;const s=sitRef.current;if(!s)return;if(t>=T.vidSitting.s&&t<T.vidSitting.e){if(!sitStartedRef.current){s.currentTime=1.5;s.muted=false;try{s.play()}catch{s.muted=true;try{s.play()}catch{}}sitStartedRef.current=true;}if(s.currentTime>=5){s.pause();s.currentTime=5;}}else if(t>=T.vidSitting.e){if(!s.paused)s.pause();}},[t,started]);
 

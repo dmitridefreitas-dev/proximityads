@@ -1,0 +1,304 @@
+PROXIMITY REELEDITS — IMPROVEMENT AUDIT & PLAN
+================================================
+
+>>> EXECUTION STATUS (updated after "execute all" + dark-mode build) <<<
+DONE:
+  P0-1 landscape T.freeze crash ........... fixed (-> T.vidCheers.e)
+  P0-2 three click() SFX mis-wiring ....... fixed (sub-thump routed, dup removed, via master)
+  P0-3 one CTA press ...................... completed (wired the computed btnBg into the button)
+  P0-4 hook1 .mov risk .................... transcoded sitting/twoguystalking .mov -> .mp4
+                                            (H.264/AAC + faststart) via installed ffmpeg; .mov deleted
+  P1-1 run-times + honest labels .......... CTAs trimmed (one 19.5->16.7, hook1 38.5->37.0,
+                                            hook2/3 -1.5s, three 22.9->21.4); splash labels corrected
+  P1-3 dead assets ........................ removed hook2 shatter*.mp4 + hook2/screenshots/
+  P1-4 three brookings hero ............... now <video brookings.mp4> (poster brookings.jpg)
+  P1-6 audio bus .......................... DynamicsCompressor added to every SfxEngine; masters
+                                            normalized to 0.6
+  P2-4 CTA URLs ........................... verified intentional (matchmaking hooks -> /matchmaking,
+                                            brand reels one/three -> root); casing already consistent
+  P2-5 reduced motion ..................... prefers-reduced-motion gates hook1 rewind glitch +
+                                            hook2 screen shake
+  P2-6 DARK MODE (the headline ask) ....... every reel (one, hook1, hook1-landscape, hook2, hook3,
+                                            three) now has a light + dark cut via ?mode=dark.
+                                            Tokenized the flat C into a light/dark factory; ink-on-
+                                            color text pinned to #fff; three's skeuomorphic browser
+                                            and hook2's shatter flash and hook3's polaroids kept
+                                            light by design. Root launcher (index.html) now offers a
+                                            Light/Dark button per reel.
+
+DEFERRED (need assets/content or a large refactor — intentionally not done):
+  P1-2 hook2 watermark crop ............... still uses scale/translate; needs a clean watermark-free
+                                            shatter encode (ffmpeg can't remove the watermark).
+  P1-7 hook1 captions ..................... needs the actual dialogue script to burn in.
+  P2-1 de-duplicate reel2 body ............ NOT extracted to a shared file; tokenization was applied
+                                            in place to all 3 copies. (Lower risk than a 3-file
+                                            structural refactor in one pass; revisit before further
+                                            body edits.)
+  P2-2 Remotion port ...................... deferred until a reel is "final".
+  P2-3 hook3 real screenshots ............. still real; replace with stylized look-alikes when ready.
+
+================================================
+Scope: everything under reeledits/
+  one/index.html ............ "5 Tabs / Zero Answers"
+  two/reel2hook1/index.html . Two-guys-talking video + VHS rewind (+ landscape.html)
+  two/reel2hook2/index.html . Glass shatter (forward + reverse video)
+  two/reel2hook3/index.html . Screenshot pile-on
+  three/index.html .......... "You got in" → browser chaos → Five-Nine listing
+
+All five are single-file React + Babel prototypes rendered in-browser at 1080x1920,
+driven by a wall-clock (performance.now) timer, with a per-file Web-Audio SFX engine
+and a tap-to-play splash. reel2's three hooks share an identical "body" (form → cards
+→ not-sure → chat → listing → tour → CTA).
+
+How to read this: items are grouped P0 (broken/ship-blocking), P1 (polish that
+materially affects quality), P2 (strategic / structural). Each item names the file,
+the line area, the problem, and the fix.
+
+
+================================================================
+P0 — CORRECTNESS BUGS (fix before any of these are recorded/shipped)
+================================================================
+
+[P0-1] landscape.html references a timeline key that doesn't exist
+  File: two/reel2hook1/landscape.html : ~336
+  Code: if(t>=T.vidCheers.s && t<T.freeze.s){...}
+  Problem: the landscape T timeline has no `freeze` key (it has vidCheers/textHow/
+    rewind/...). Reading T.freeze.s throws a TypeError inside the video-control effect
+    on every frame from t=0, so twoguystalking.mov never gets its play/pause logic and
+    the whole landscape cut is effectively broken.
+  Fix: use the same key as the portrait file — replace `T.freeze.s` with `T.vidCheers.e`.
+
+[P0-2] "three" click() SFX is mis-wired — sub-thump is silent, noise double-routed
+  File: three/index.html : ~66-84 (SfxEngine.click)
+  Problem: the third layer builds o2 → g3 but g3 is never connected to the graph, so
+    the sub-thump is inaudible; meanwhile `g2.connect(c.destination)` runs a second
+    time (the line meant to route g3). Also click() routes straight to c.destination,
+    bypassing gains.master, so it ignores the master 0.5 trim and is noticeably louder
+    than every other cue.
+  Fix: connect g3 to the bus (g3.connect(this.gains.master)); delete the duplicate
+    g2 connect; route all three layers through this.gains.master, not c.destination.
+
+[P0-3] "one" CTA plays a click + confirm sound with nothing to click
+  File: one/index.html : SceneCTA (~384-426) and SFX (~479-480)
+  Problem: SFX fires ctaClick @ cta+3.5 and ctaConfirm @ cta+3.8, but SceneCTA renders
+    no button-press animation tied to those times (clickTime is computed but the button
+    "Browse listings or get matched" never animates). Result: a phantom "tap" sound over
+    a static frame.
+  Fix: either (a) add the press/scale animation to the CTA button at clickTime (mirror
+    the press pattern used in three's "Browse Listings"), or (b) drop the ctaClick/
+    ctaConfirm cues. Recommend (a) — a self-clicking CTA reads as a demo of the product.
+
+[P0-4] .mov video assets are a playback risk
+  Files: two/reel2hook1/ uses sitting.mov + twoguystalking.mov
+  Problem: QuickTime .mov support in browsers is codec-dependent (Chrome often refuses
+    H.264-in-MOV, Firefox won't). If it fails the catch path silently leaves a black/
+    frozen frame — the whole hook is the video, so the reel opens on black.
+  Fix: transcode both to .mp4 (H.264 + AAC) like hook2 already uses; update the <video>
+    src. Keep a poster frame so a load failure still shows an image, not black.
+
+
+================================================================
+P1 — TIMING, PACING & POLISH
+================================================================
+
+[P1-1] Run-times overshoot their own labels and social-platform sweet spots
+  one: TOTAL 19.5s, splash says ":15 spot"  (≈4.5s long)
+  hook1: TOTAL 38.5s, splash says ":30 spot" (≈8.5s long)
+  hook2/hook3 bodies run ~32s / ~27.7s.
+  Problem: labels lie, and 30-38s is long for IG Reels/TikTok where watch-through
+    drops fast. The CTAs especially hold static for 3-5s after everything has settled.
+  Fix: tighten each body to land ~20-25s total. Concretely:
+    - Cut CTA hold time: in every SceneCTA the last element (freeT) settles ~2.2s in,
+      yet the scene runs 3.7s+. Trim CTA windows to ~2.6-3.0s.
+    - one: CTA is 12.4→19.5 (7.1s) for ~2.6s of content — cut ~3s.
+    - Re-sync the splash label to the real TOTAL, or vice-versa.
+
+[P1-2] hook2 relies on a zoom-and-shift hack to hide a watermark
+  File: two/reel2hook2/index.html : ~225, ~236 (transform: scale(1.25) translateX(-6.5%))
+  History: the last ~5 commits are all nudging this offset to crop a watermark out of
+    glass.mp4 / glass-reverse.mp4.
+  Problem: scale(1.25) throws away 20% of resolution and the crop is fragile (any new
+    encode shifts the watermark). It also crops the shatter's center of impact off-axis.
+  Fix: source/clean a watermark-free shatter clip, then drop the scale/translate hack
+    so the crack radiates from true center at full res.
+
+[P1-3] Dead/duplicate video assets in hook2
+  Files: two/reel2hook2/ ships glass.mp4 + glass-reverse.mp4 (used) AND
+    shatter.mp4 + shatter-reverse.mp4 (NOT referenced anywhere).
+  Fix: delete the unused shatter*.mp4 pair (and the stale screenshots/ss*.jpg under
+    hook2 if they're no longer referenced — they're a leftover from the old SVG plan).
+
+[P1-4] "three" uses a static image where a drone video is already in the repo
+  File: three/index.html : ~180 uses brookings.jpg
+  Note: reeledits/three/brookings.mp4 exists and is unused; the timeline even calls the
+    opening block `video` (T.video {s:0,e:6.5}).
+  Fix: swap the opening hero to <video src="brookings.mp4"> (muted, playsInline, with a
+    Ken-Burns fallback to brookings.jpg on error). Motion on the first frame lifts the
+    hook substantially.
+
+[P1-5] Inconsistent chrome (logo + WashU badge) across "three"
+  File: three/index.html
+  Problem: the persistent Chrome only renders inside SceneListing; the browser-chaos
+    intro, the Proximity intro, and the CTA have no badge — unlike one/two which show
+    chrome through the whole body.
+  Fix: hoist <Chrome/> to App with a `visible` window (e.g. after the intro, hide on
+    the final CTA) so branding is consistent with the other reels.
+
+[P1-6] Audio levels are unmanaged across cues and files
+  Problem: each SfxEngine hard-codes per-cue gains; thump/impact/beatDrop sit at 0.5-0.8
+    while ticks sit at 0.3, and master differs per file (one=0.6, three=0.5, hook2=0.7).
+    On a phone speaker the bass hits clip and the ticks vanish.
+  Fix: pick one master (0.6), pass everything through a single limiter/compressor node
+    in ensureCtx (DynamicsCompressor), and normalize cue gains to a shared scale.
+
+[P1-7] Sound-off viewers lose the video dialogue in hook1
+  File: two/reel2hook1/ (twoguystalking.mov, 0.4-6.0s)
+  Problem: ~85% of social video is watched muted first. The opening is people talking
+    with no captions; the only text is "So how exactly did we end up here?" at the end.
+  Fix: add burned-in captions/subtitles over the talking segment, or replace the talking
+    clip with a visual gag that reads silently.
+
+
+================================================================
+P2 — STRUCTURE, MAINTAINABILITY & DELIVERY
+================================================================
+
+[P2-1] reel2's body is copy-pasted three times (~400 lines each)
+  Files: hook1 / hook2 / hook3 each re-implement FormField, SceneFormTitle, SceneForm,
+    PHOTOS, MatchCard, SceneCards, ChatBubble, SceneChat, SceneListing, SceneCTA — byte-
+    for-byte identical apart from the timeline offset constant.
+  Problem: any copy edit (a price, a label, a timing tweak) must be made in 3 places;
+    they will drift. The landscape file is already a 4th, out-of-date divergence.
+  Fix: follow the pattern reel3 already established (animations.jsx + scenes.jsx loaded
+    via <script type="text/babel" src=...>). Extract a shared body.jsx (the engine + all
+    body scenes) and let each hook file contain only its hook scene + the timeline base.
+
+[P2-2] In-browser Babel + wall-clock timing can't be reliably exported to MP4
+  All reeledits files transform JSX at runtime via @babel/standalone and advance time
+  with performance.now(). On any frame drop the animation stutters AND the SFX (scheduled
+  on the audio clock) desyncs from the visuals. Screen-recording these gives inconsistent
+  takes.
+  Options, in order of effort:
+    - Short term: add a fixed-timestep option (advance t by 1/30 per rAF) for recording so
+      takes are deterministic; record on a fast machine.
+    - Right answer: port the finished reels into the existing Remotion project
+      (reel5/proximity-reels). Remotion already renders deterministic 1080x1920 MP4s with
+      frame-locked Audio — it is the correct delivery path. The reeledits become the
+      "design in the browser" step, Remotion the "render" step.
+
+[P2-3] Third-party real screenshots in hook3 are a brand/legal risk
+  Files: two/reel2hook3/screenshots/ss1-10.jpg (real Reddit/StudLife pages, see capture.py)
+  Problem: shipping real usernames, post text, and other sites' chrome in a paid ad can
+    raise privacy/ToS/defamation concerns, and the look is "scraped," not designed.
+  Fix: replace with stylized look-alike screenshots (same vibe, fabricated handles/text),
+    or blur identifying details. Keep capture.py only as an internal reference.
+
+[P2-4] CTA URL and brand casing are inconsistent
+  - URLs: one → "useproximity.org"; two → "useproximity.org/matchmaking"; three →
+    "useproximity.org". Pick one canonical destination per campaign goal.
+  - Casing: reeledits use "Proximity"; reel4 uses lowercase "proximity". Standardize the
+    wordmark across the whole set.
+
+[P2-5] No reduced-motion / autoplay-policy handling
+  - Add prefers-reduced-motion handling (skip shakes/zoom-blasts) for accessibility.
+  - The tap-to-play splash already satisfies the audio-gesture requirement — good — but
+    document that these MUST be started by a user gesture; they will not auto-run in a
+    feed embed.
+
+
+================================================================
+P2-6 — DARK MODE VARIANT FOR EVERY REEL
+================================================================
+Goal: ship a light AND a dark cut of each reeledit (one, hook1, hook2, hook3, three)
+so the set can match the destination's look (dark feeds, story backgrounds, A/B tests).
+Today every file hard-codes a light palette: offWhite #FAFAFA bg, #0A0A0A text, #FFFFFF
+cards. Red (#E23A2F) is the brand constant and stays identical in both modes.
+
+There is already precedent to copy, not invent:
+  - reel5/proximity-reels/src/brand.ts has getTheme(isDark) returning a full light/dark
+    token set (bg, text, sub, card, cardBorder, fieldBg, reviewBg, glow). Mirror those
+    tokens.
+  - reel1/reel2 originals are already dark — reuse their bg (#0B0B0C) / paper text feel.
+
+[P2-6a] Tokenize color first (do this WITH P2-1, not after)
+  Problem: each file uses a flat `C` object with literal hex (C.offWhite, C.dark, C.white).
+    Theming by hand means touching dozens of style props per file x5 files x2 modes.
+  Fix: replace the flat C with a theme factory, e.g.:
+    const BRAND = { red:'#E23A2F', green:'#22C55E', gray:'#555555' };  // mode-invariant
+    const THEME = {
+      light: { bg:'#FAFAFA', surface:'#FFFFFF', text:'#0A0A0A', sub:'#555555',
+               border:'rgba(0,0,0,.08)', redTint:'#FBE6E4', shadow:'rgba(0,0,0,.1)' },
+      dark:  { bg:'#0B0B0C', surface:'#161618', text:'#F5F3EF', sub:'#9A9A9A',
+               border:'rgba(255,255,255,.10)', redTint:'rgba(226,58,47,.16)',
+               shadow:'rgba(0,0,0,.5)' },
+    };
+    Read mode from a URL param so one file serves both cuts, no copy:
+      const mode = new URLSearchParams(location.search).get('mode')==='dark'?'dark':'light';
+      const C = { ...BRAND, ...THEME[mode] };
+    Then index.html?mode=dark renders the dark cut; default stays light. This also keeps
+    a single source of truth — critical given the reel2 body is shared (see P2-1).
+
+[P2-6b] Token-swap checklist (applies to one, two-body, hook1, hook3, three)
+  - background offWhite        -> C.bg
+  - text dark                  -> C.text ; secondary gray -> C.sub
+  - card/bubble white          -> C.surface
+  - hairline borders rgba(0,0,0,..) -> C.border
+  - redTint fills (#FBE6E4)    -> C.redTint (dark: low-alpha red)
+  - drop shadows               -> deepen in dark (C.shadow)
+  - splash + replay screens     -> already dark (#0A0A0B); only flip if a LIGHT splash is
+                                   wanted for the light cut (optional).
+  - Chrome logo wordmark color -> C.text (currently hard-set to C.dark)
+  - Photos, listing images, the red logo, green accents -> UNCHANGED.
+
+[P2-6c] Per-reel special cases (the parts a blind token swap gets wrong)
+  one (5 Tabs): the 5 "tab" rows use gray favicon chips (#444-#888) on white cards — in
+    dark mode bump chip luminance or add a 1px light ring so they don't vanish into the
+    dark card. Review images and their red/green quote callouts are fine as-is.
+  hook1 (two-guys + rewind): video + VHS scenes are already dark-neutral; only the body
+    needs tokens. The grey-hold after the rewind reads in both modes.
+  hook2 (glass shatter): the shatter plays on a WHITE frame and "is broken." text sits on
+    it. In dark mode flip that frame to near-black (#0B0B0C) and confirm glass.mp4 reads
+    on black (a shatter shot on white may look wrong inverted — may need a dark-bg encode
+    of the clip, or keep the shatter frame white in BOTH modes as an intentional flash).
+    Decide per art direction; do not auto-invert the video.
+  hook3 (screenshot pile-on): the pile bg (offWhite) -> C.bg; the polaroid card stock
+    stays light/white (real screenshots are light) so they pop against a dark pile — good.
+    The "Meet Proximity." beat already cuts to pure black, so it needs no change.
+  three: browser-chaos window is a skeuomorphic light Chrome window — keep the browser
+    LIGHT in both modes (a dark browser would muddy the "tab chaos" read); only theme the
+    Proximity intro, the Five-Nine listing card, and the CTA. The brookings hero is a
+    photo, mode-invariant.
+
+[P2-6d] Build/deliver both cuts
+  - With the ?mode= approach, no file duplication: record each reel twice
+    (index.html and index.html?mode=dark).
+  - Update reeledits/../index.html launcher (root) to list a Light/Dark toggle or two
+    links per reel.
+  - If/when ported to Remotion (P2-2), this maps 1:1 onto reel5's existing dark/light
+    Composition pair — getTheme(isDark) is the same idea, so do the tokenization now and
+    the Remotion port inherits it for free.
+
+Effort: ~1 file of token plumbing per reel (or once, in the shared body from P2-1), plus
+the 5 special-case decisions in P2-6c. Doing P2-1 (de-dup) and P2-6a (tokenize) together
+is the efficient path — both are "stop hard-coding, centralize" refactors.
+
+
+================================================================
+RECOMMENDED ORDER OF WORK
+================================================================
+1. Fix P0-1..P0-4 (broken landscape, mis-wired SFX, phantom click, .mov risk).
+2. P1-1 (trim run-times + honest labels) and P1-2/P1-3 (clean shatter asset, drop dead
+   files) — biggest perceived-quality wins.
+3. P2-1 (de-duplicate reel2 body) + P2-6a/P2-6b (tokenize color) together — one
+   centralization refactor that unlocks dark mode and makes future edits land once.
+4. P2-6c/P2-6d (dark-mode special cases + dual-cut delivery) on top of the tokens.
+5. P1-4..P1-7 polish pass (drone hero, consistent chrome, audio bus, captions).
+6. P2-2 (Remotion port) when a reel is "final" and needs a clean MP4 master — inherits
+   the light/dark tokens for free.
+
+QUICK WINS (cheap, high value): P0-1, P0-3, P1-3, P2-4.
+
+NOTE — data is accurate: spot-checked the listing data baked into reel2's body
+(6040 Kingsbury $1,395 / 19 min; Tanjiers $938-$1,169; Park Lux $1,420-$1,520; Five-Nine)
+against reel5/SITE_INFO.txt — addresses, prices, and walk times match the live site, so
+no content-accuracy fixes are needed there.
