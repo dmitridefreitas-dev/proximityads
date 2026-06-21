@@ -205,7 +205,7 @@ function SceneIntro({t}){
 
       {/* Browser window — reel2 style, light mode */}
       {!snapped&&bLt>0&&(
-        <div style={{position:'absolute',left:30,right:30,top:560,height:1260,background:'#FFFFFF',borderRadius:14,boxShadow:'0 30px 80px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.1)',border:'1px solid rgba(0,0,0,.08)',overflow:'hidden',opacity:bEased,transform:`translateY(${(1-bEased)*30}px) scale(${0.96+bEased*0.04})`,zIndex:20}}>
+        <div style={{position:'absolute',left:30,right:30,top:560,height:1180,background:'#FFFFFF',borderRadius:14,boxShadow:'0 30px 80px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.1)',border:'1px solid rgba(0,0,0,.08)',overflow:'hidden',opacity:bEased,transform:`translateY(${(1-bEased)*30}px) scale(${0.96+bEased*0.04})`,zIndex:20}}>
           {/* Tab bar */}
           <div style={{height:38,background:'#e8eaed',display:'flex',alignItems:'flex-end',paddingLeft:16,paddingRight:12,position:'relative'}}>
             <div style={{position:'absolute',left:14,top:12,display:'flex',gap:7}}>
@@ -366,7 +366,7 @@ function WalkTimeRow({label,minutes,delay,lt}){
   const e=ease.outBack(t);
   const displayMin=Math.round(lerp(0,minutes,ease.outCubic(t)));
   return(
-    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 28px',borderRadius:16,background:C.white,border:'1.5px solid rgba(0,0,0,0.05)',boxShadow:'0 2px 8px rgba(0,0,0,.03)',opacity:t,transform:`translateX(${(1-e)*40}px)`,marginBottom:14}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'20px 28px',borderRadius:16,background:C.white,border:'1.5px solid rgba(0,0,0,0.05)',boxShadow:'0 2px 8px rgba(0,0,0,.03)',opacity:t,transform:`translateX(${(1-e)*40}px)`,marginBottom:20}}>
       <div style={{display:'flex',alignItems:'center',gap:16}}>
         <div style={{width:52,height:52,borderRadius:13,background:'#FBE6E4',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2" fill={C.red}/><path d="M12 8c-1.5 0-2 1-2 2v3h-1l1 5h1v4h2v-4h1l1-5h-1v-3c0-1-.5-2-2-2z" fill={C.red}/></svg>
@@ -382,7 +382,7 @@ function ReviewBubble({name,text,stars,delay,lt}){
   const t=clamp((lt-delay)/0.5,0,1);
   const e=ease.outCubic(t);
   return(
-    <div style={{padding:'26px 30px',borderRadius:18,background:C.white,border:'1.5px solid rgba(0,0,0,.05)',boxShadow:'0 2px 8px rgba(0,0,0,.03)',opacity:t,transform:`translateY(${(1-e)*20}px)`,marginBottom:18}}>
+    <div style={{padding:'26px 30px',borderRadius:18,background:C.white,border:'1.5px solid rgba(0,0,0,.05)',boxShadow:'0 2px 8px rgba(0,0,0,.03)',opacity:t,transform:`translateY(${(1-e)*20}px)`,marginBottom:24}}>
       <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:12}}>
         <div style={{width:58,height:58,borderRadius:'50%',background:C.red,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:27,flexShrink:0}}>{name[0]}</div>
         <div style={{fontWeight:700,fontSize:35,color:C.dark}}>{name}</div>
