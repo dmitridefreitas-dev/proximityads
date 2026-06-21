@@ -205,7 +205,7 @@ function SceneIntro({t}){
 
       {/* Browser window — reel2 style, light mode */}
       {!snapped&&bLt>0&&(
-        <div style={{position:'absolute',left:30,right:30,top:560,height:1100,background:'#FFFFFF',borderRadius:14,boxShadow:'0 30px 80px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.1)',border:'1px solid rgba(0,0,0,.08)',overflow:'hidden',opacity:bEased,transform:`translateY(${(1-bEased)*30}px) scale(${0.96+bEased*0.04})`,zIndex:20}}>
+        <div style={{position:'absolute',left:30,right:30,top:560,height:1260,background:'#FFFFFF',borderRadius:14,boxShadow:'0 30px 80px rgba(0,0,0,0.35), 0 4px 12px rgba(0,0,0,0.1)',border:'1px solid rgba(0,0,0,.08)',overflow:'hidden',opacity:bEased,transform:`translateY(${(1-bEased)*30}px) scale(${0.96+bEased*0.04})`,zIndex:20}}>
           {/* Tab bar */}
           <div style={{height:38,background:'#e8eaed',display:'flex',alignItems:'flex-end',paddingLeft:16,paddingRight:12,position:'relative'}}>
             <div style={{position:'absolute',left:14,top:12,display:'flex',gap:7}}>
@@ -382,13 +382,13 @@ function ReviewBubble({name,text,stars,delay,lt}){
   const t=clamp((lt-delay)/0.5,0,1);
   const e=ease.outCubic(t);
   return(
-    <div style={{padding:'22px 26px',borderRadius:16,background:C.white,border:'1.5px solid rgba(0,0,0,.05)',boxShadow:'0 2px 8px rgba(0,0,0,.03)',opacity:t,transform:`translateY(${(1-e)*20}px)`,marginBottom:14}}>
-      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
-        <div style={{width:50,height:50,borderRadius:'50%',background:C.red,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:23,flexShrink:0}}>{name[0]}</div>
-        <div style={{fontWeight:700,fontSize:31,color:C.dark}}>{name}</div>
-        <div style={{color:'#F59E0B',fontSize:25,marginLeft:'auto'}}>{'★'.repeat(stars)}</div>
+    <div style={{padding:'26px 30px',borderRadius:18,background:C.white,border:'1.5px solid rgba(0,0,0,.05)',boxShadow:'0 2px 8px rgba(0,0,0,.03)',opacity:t,transform:`translateY(${(1-e)*20}px)`,marginBottom:18}}>
+      <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:12}}>
+        <div style={{width:58,height:58,borderRadius:'50%',background:C.red,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:27,flexShrink:0}}>{name[0]}</div>
+        <div style={{fontWeight:700,fontSize:35,color:C.dark}}>{name}</div>
+        <div style={{color:'#F59E0B',fontSize:31,marginLeft:'auto'}}>{'★'.repeat(stars)}</div>
       </div>
-      <div style={{fontSize:30,color:C.gray,lineHeight:1.4,fontStyle:'italic'}}>"{text}"</div>
+      <div style={{fontSize:36,color:C.gray,lineHeight:1.4,fontStyle:'italic'}}>"{text}"</div>
     </div>
   );
 }
