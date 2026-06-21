@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
-<title>Proximity — Reel 2 Hook 2: It's Broken</title>
+<title>Proximity — Reel 2 Hook 2: Glass Shatter</title>
 <link rel="icon" href="data:,"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link rel="preload" as="video" href="glass.mp4"/>
+<link rel="preload" as="video" href="glass-reverse.mp4"/>
 <link rel="preload" as="image" href="6040.avif"/>
 <link rel="preload" as="image" href="tanjiers.jpg"/>
 <link rel="preload" as="image" href="parklux.avif"/>
@@ -106,121 +108,188 @@ function Logo({size=80,color=C.red}){
 function Chrome({visible}){
   if(!visible)return null;
   return(
-    <div style={{position:'absolute',top:56,left:48,right:48,zIndex:200,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-      <div style={{display:'flex',alignItems:'center',gap:20}}>
-        <Logo size={80} color={C.red}/>
-        <span style={{fontWeight:900,fontSize:42,color:C.dark,letterSpacing:'-.02em'}}>Proximity</span>
+    <div style={{position:'absolute',top:48,left:48,right:48,zIndex:200,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{display:'flex',alignItems:'center',gap:14}}>
+        <Logo size={48} color={C.red}/>
+        <span style={{fontWeight:900,fontSize:24,color:C.dark,letterSpacing:'-.02em'}}>Proximity</span>
       </div>
-      <span style={{fontWeight:800,fontSize:26,letterSpacing:'.14em',textTransform:'uppercase',color:C.red}}>FOR WASHU STUDENTS</span>
+      <span style={{fontWeight:700,fontSize:16,letterSpacing:'.16em',textTransform:'uppercase',color:C.red}}>FOR WASHU STUDENTS</span>
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════
-   SESSION HEADER — persistent concierge thread + step tracker.
-   Shown across form → matches → refine → listing so the whole
-   body reads as ONE continuous conversation with the concierge.
-   ════════════════════════════════════════════════ */
-function SessionHeader({step}){
-  const steps=['Preferences','Matches','Refine','Your place'];
-  return(
-    <div style={{position:'absolute',top:152,left:40,right:40,zIndex:30,background:C.white,borderRadius:20,padding:'18px 24px',border:`1.5px solid ${C.border}`,boxShadow:'0 6px 20px rgba(0,0,0,.06)'}}>
-      <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:14}}>
-        <div style={{width:16,height:16,borderRadius:'50%',background:C.green,boxShadow:'0 0 0 5px rgba(34,197,94,.18)',flexShrink:0}}/>
-        <div style={{fontWeight:800,fontSize:27,color:C.dark,letterSpacing:'-.01em'}}>Proximity Concierge</div>
-        <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:7}}>
-          <div style={{width:9,height:9,borderRadius:'50%',background:C.green}}/>
-          <div style={{fontWeight:700,fontSize:16,letterSpacing:'.12em',textTransform:'uppercase',color:C.green}}>Live</div>
-        </div>
-      </div>
-      <div style={{display:'flex',alignItems:'center',gap:6}}>
-        {steps.map((s,i)=>(
-          <React.Fragment key={i}>
-            <div style={{padding:'8px 13px',borderRadius:999,background:i===step?C.red:(i<step?'rgba(226,58,47,.14)':(DARK?'rgba(255,255,255,.07)':'rgba(0,0,0,.05)')),color:i===step?'#fff':(i<step?C.red:C.gray),fontWeight:700,fontSize:15,whiteSpace:'nowrap'}}>{i<step?'✓ '+s:s}</div>
-            {i<steps.length-1&&<div style={{flex:1,height:3,borderRadius:2,background:i<step?C.red:(DARK?'rgba(255,255,255,.12)':'rgba(0,0,0,.12)')}}/>}
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ════════════════════════════════════════════════
-   HOOK TIMELINE — typographic "it's broken → we fixed it"
-   (the glass-shatter video was removed)
-   ════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   HOOK TIMELINE — Glass Shatter Video
+   Video is 10s at 1x. We play at 2.5x → ~4s forward, ~4s reverse.
+   ══════════════════════════════════════════════ */
+const VID_RATE=2.5;
+const VID_DUR=10/VID_RATE;
 const TH={
-  line1:    0.3,   /* "The off-campus housing market" */
-  line2:    1.3,   /* "is broken." slams in */
-  fixed:    2.9,   /* cut to "So we fixed it." */
-  logo:     3.5,
-  beatDrop: 4.0,
-  hookEnd:  4.3,
+  vidStart:   0.3,
+  vidEnd:     0.3+VID_DUR,
+  hit1:       0.3+VID_DUR-1.8,
+  hit2:       0.3+VID_DUR-0.8,
+  revStart:   0.3+VID_DUR+0.5,
+  revEnd:     0.3+VID_DUR*2+0.5,
+  fixedIt:    0.3+VID_DUR*2+0.8,
+  logo:       0.3+VID_DUR*2+1.3,
+  beatDrop:   0.3+VID_DUR*2+1.8,
+  hookEnd:    0.3+VID_DUR*2+2.1,
 };
 
 /* ── BODY TIMELINE ── */
 const TB={
-  formTitle: {s:TH.hookEnd,        e:TH.hookEnd+1.6},
-  formFill:  {s:TH.hookEnd+1.6,    e:TH.hookEnd+5.8},
-  formSubmit:{s:TH.hookEnd+5.8,    e:TH.hookEnd+6.5},
-  cards:     {s:TH.hookEnd+6.5,    e:TH.hookEnd+8.8},
-  notSure:   {s:TH.hookEnd+8.8,    e:TH.hookEnd+10.3},
-  chat:      {s:TH.hookEnd+10.3,   e:TH.hookEnd+14.5},
-  listing:   {s:TH.hookEnd+14.5,   e:TH.hookEnd+17.5},
-  tour:      {s:TH.hookEnd+17.5,   e:TH.hookEnd+18.8},
-  cta:       {s:TH.hookEnd+18.8,   e:TH.hookEnd+21.0},
+  formTitle:{s:TH.hookEnd,          e:TH.hookEnd+0.8},
+  formFill: {s:TH.hookEnd+0.8,     e:TH.hookEnd+5.0},
+  formSubmit:{s:TH.hookEnd+5.0,    e:TH.hookEnd+5.7},
+  cards:    {s:TH.hookEnd+5.7,     e:TH.hookEnd+8.0},
+  notSure:  {s:TH.hookEnd+8.0,     e:TH.hookEnd+9.5},
+  chat:     {s:TH.hookEnd+9.5,     e:TH.hookEnd+13.7},
+  listing:  {s:TH.hookEnd+13.7,    e:TH.hookEnd+16.7},
+  tour:     {s:TH.hookEnd+16.7,    e:TH.hookEnd+18.0},
+  cta:      {s:TH.hookEnd+18.0,    e:TH.hookEnd+20.2},
 };
-const TOTAL=TH.hookEnd+21.0;
+const TOTAL=TH.hookEnd+20.2;
 
-/* ════════════════════════════════════════════════
-   HOOK SCENE — typographic (no glass shatter)
-   ════════════════════════════════════════════════ */
-function SceneHook({t}){
+/* ══════════════════════════════════════════════
+   HOOK SCENE — Glass Shatter Video
+   ══════════════════════════════════════════════ */
+function SceneHook({t,vidFwdRef,vidRevRef}){
   if(t>TH.hookEnd+0.3)return null;
-  const exitF=t>=TH.beatDrop?clamp((t-TH.beatDrop)/0.3,0,1):0;
 
-  /* "The off-campus housing market is broken." */
-  const l1=clamp((t-TH.line1)/0.4,0,1);
-  const l1e=ease.outCubic(l1);
-  const l2=clamp((t-TH.line2)/0.35,0,1);
-  const l2e=ease.outBack(l2);
-  /* quick shake as "is broken." lands — emphasis, not a glass shatter */
-  const shakeP=(!RM&&t>=TH.line2&&t<TH.line2+0.35)?(1-clamp((t-TH.line2)/0.35,0,1)):0;
-  const sx=shakeP*10*Math.sin(t*70);
-  const brokenOut=t>=TH.fixed-0.25?clamp((t-(TH.fixed-0.25))/0.25,0,1):0;
+  const inForward=t>=TH.vidStart&&t<TH.vidEnd;
+  const showCracked=t>=TH.vidEnd&&t<TH.revStart;
+  const inReverse=t>=TH.revStart&&t<TH.revEnd;
+  const postReverse=t>=TH.revEnd;
 
-  /* "So we fixed it." */
-  const fixT=clamp((t-TH.fixed)/0.4,0,1);
+  /* Start forward video */
+  React.useEffect(()=>{
+    if(t>=TH.vidStart&&t<TH.vidStart+0.05&&vidFwdRef.current){
+      const v=vidFwdRef.current;
+      v.currentTime=0;v.playbackRate=VID_RATE;
+      v.play().catch(()=>{});
+    }
+  },[t>=TH.vidStart]);
+
+  /* Pause forward video at end */
+  React.useEffect(()=>{
+    if(t>=TH.vidEnd&&vidFwdRef.current&&!vidFwdRef.current.paused){
+      vidFwdRef.current.pause();
+    }
+  },[t>=TH.vidEnd]);
+
+  /* Start reverse video */
+  React.useEffect(()=>{
+    if(t>=TH.revStart&&t<TH.revStart+0.05&&vidRevRef.current){
+      const v=vidRevRef.current;
+      v.currentTime=0;v.playbackRate=VID_RATE;
+      v.play().catch(()=>{});
+    }
+  },[t>=TH.revStart]);
+
+  /* Pause reverse video at end */
+  React.useEffect(()=>{
+    if(t>=TH.revEnd&&vidRevRef.current&&!vidRevRef.current.paused){
+      vidRevRef.current.pause();
+    }
+  },[t>=TH.revEnd]);
+
+  /* Text animations */
+  const hit1T=clamp((t-TH.hit1)/0.35,0,1);
+  const hit1E=ease.outCubic(hit1T);
+  const hit2T=clamp((t-TH.hit2)/0.45,0,1);
+  const hit2E=ease.outCubic(hit2T);
+  const textFade=t>=TH.revStart?clamp((t-TH.revStart)/0.4,0,1):0;
+
+  const fixT=clamp((t-TH.fixedIt)/0.4,0,1);
   const fixE=ease.outBack(fixT);
+
   const logoT=clamp((t-TH.logo)/0.4,0,1);
   const logoE=ease.outCubic(logoT);
 
+  const exitF=t>=TH.beatDrop?clamp((t-TH.beatDrop)/0.3,0,1):0;
+
+  /* Screen shake during forward video */
+  const shakeAmt=inForward&&!RM?Math.max(0,1-((t-TH.vidStart)/VID_DUR))*6:0;
+  const shakeX=shakeAmt*Math.sin(t*45);
+  const shakeY=shakeAmt*Math.cos(t*38);
+
+  const showVideo=inForward||showCracked;
+  const showReverse=inReverse;
+
   return(
-    <div style={{position:'absolute',inset:0,zIndex:20,background:C.offWhite,opacity:1-exitF}}>
-      {t<TH.fixed&&(
-        <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 70px',opacity:1-brokenOut}}>
-          <div style={{opacity:l1,transform:`translateY(${(1-l1e)*40}px)`,textAlign:'center'}}>
-            <div style={{fontWeight:900,fontSize:78,lineHeight:1.05,letterSpacing:'-.04em',color:C.dark}}>
-              The off-campus<br/>housing market
-            </div>
-          </div>
-          <div style={{opacity:l2,transform:`translate(${sx}px, ${(1-l2e)*50}px)`,textAlign:'center',marginTop:18}}>
-            <div style={{fontWeight:900,fontSize:124,lineHeight:1,letterSpacing:'-.045em',color:C.red}}>
-              is broken.
-            </div>
-          </div>
+    <div style={{position:'absolute',inset:0,zIndex:20,opacity:1-exitF}}>
+      {/* White shatter frame — intentionally white in both light & dark modes */}
+      <div style={{position:'absolute',inset:0,background:'#FFFFFF'}}/>
+
+      {/* Forward video */}
+      {showVideo&&(
+        <div style={{position:'absolute',inset:0,overflow:'hidden',transform:`translate(${shakeX}px,${shakeY}px)`}}>
+          <video ref={vidFwdRef} muted={false} playsInline preload="auto"
+            style={{width:'100%',height:'100%',objectFit:'cover',transform:'scale(1.25) translateX(-6.5%)',transformOrigin:'center center',display:'block'}}
+          >
+            <source src="glass.mp4" type="video/mp4"/>
+          </video>
         </div>
       )}
-      {t>=TH.fixed&&(
-        <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-          <div style={{opacity:fixT,transform:`scale(${0.85+fixE*0.15}) translateY(${(1-fixE)*30}px)`,textAlign:'center'}}>
-            <div style={{fontWeight:900,fontSize:100,letterSpacing:'-.04em',color:C.dark,lineHeight:1}}>
-              So we <span style={{color:C.red}}>fixed it.</span>
+
+      {/* Reverse video */}
+      {showReverse&&(
+        <div style={{position:'absolute',inset:0,overflow:'hidden'}}>
+          <video ref={vidRevRef} muted={false} playsInline preload="auto"
+            style={{width:'100%',height:'100%',objectFit:'cover',transform:'scale(1.25) translateX(-6.5%)',transformOrigin:'center center',display:'block'}}
+          >
+            <source src="glass-reverse.mp4" type="video/mp4"/>
+          </video>
+        </div>
+      )}
+
+      {/* Text overlay — "The off campus housing market is broken." */}
+      {(showCracked||inForward)&&hit1T>0&&(
+        <div style={{
+          position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+          zIndex:5,padding:'0 60px',opacity:1-textFade,
+        }}>
+          {hit1T>0&&(
+            <div style={{
+              opacity:hit1T,
+              transform:`translateY(${(1-hit1E)*40}px)`,
+              textAlign:'center',
+            }}>
+              <div style={{fontWeight:900,fontSize:72,lineHeight:1.05,letterSpacing:'-.04em',color:'#fff',textShadow:'0 4px 30px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5)'}}>
+                The off campus housing market
+              </div>
+            </div>
+          )}
+          {hit2T>0&&(
+            <div style={{
+              opacity:hit2T,
+              transform:`translateY(${(1-hit2E)*50}px)`,
+              textAlign:'center',marginTop:16,
+            }}>
+              <div style={{fontWeight:900,fontSize:88,lineHeight:1,letterSpacing:'-.04em',color:C.red,textShadow:'0 4px 30px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)'}}>
+                is broken.
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* "So we fixed it." — on clean white after reverse */}
+      {postReverse&&fixT>0&&(
+        <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',zIndex:5}}>
+          <div style={{
+            opacity:fixT,
+            transform:`scale(${0.85+fixE*0.15}) translateY(${(1-fixE)*30}px)`,
+            textAlign:'center',
+          }}>
+            <div style={{fontWeight:900,fontSize:80,letterSpacing:'-.04em',color:C.red,lineHeight:1}}>
+              So we fixed it.
             </div>
           </div>
           {logoT>0&&(
-            <div style={{marginTop:44,opacity:logoT,transform:`translateY(${(1-logoE)*20}px)`}}>
-              <Logo size={130} color={C.red}/>
+            <div style={{marginTop:40,opacity:logoT,transform:`translateY(${(1-logoE)*20}px)`}}>
+              <Logo size={120} color={C.red}/>
             </div>
           )}
         </div>
@@ -229,25 +298,21 @@ function SceneHook({t}){
   );
 }
 
-/* ════════════════════════════════════════════════
-   BODY SCENES (identical to hook1 / hook3)
-   ════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════
+   BODY SCENES (identical to hook3)
+   ══════════════════════════════════════════════ */
 function FormField({label,value,active,done}){
   return(
     <div style={{
-      padding:'22px 32px',borderRadius:20,background:C.white,
+      padding:'28px 32px',borderRadius:20,background:C.white,
       border:`2.5px solid ${active?C.red:done?C.green:'rgba(0,0,0,.08)'}`,
-      marginBottom:16,
+      marginBottom:18,
     }}>
-      <div style={{fontSize:20,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:C.gray,marginBottom:10}}>{label}</div>
-      {/* Fixed-height value slot reserves space for the (up to 2-line) answer so the
-          form NEVER grows/shifts as fields fill in — everything stays static. */}
-      <div style={{minHeight:92,display:'flex',alignItems:'center'}}>
-        {done||active
-          ?<div style={{fontSize:34,fontWeight:700,color:C.dark,whiteSpace:'pre-line',lineHeight:1.3}}>{value}</div>
-          :<div style={{height:42,width:'55%',borderRadius:10,background:DARK?'rgba(255,255,255,.06)':'rgba(0,0,0,.05)'}}/>
-        }
-      </div>
+      <div style={{fontSize:17,fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:C.gray,marginBottom:10}}>{label}</div>
+      {done||active
+        ?<div style={{fontSize:30,fontWeight:700,color:C.dark,whiteSpace:'pre-line',lineHeight:1.35}}>{value}</div>
+        :<div style={{height:36,borderRadius:10,background:'rgba(0,0,0,.04)'}}/>
+      }
     </div>
   );
 }
@@ -256,8 +321,7 @@ function SceneFormTitle({t}){
   if(t<TB.formTitle.s||t>TB.formTitle.e+0.3)return null;
   const lt=t-TB.formTitle.s;
   const inT=clamp(lt/0.4,0,1);
-  const dur=TB.formTitle.e-TB.formTitle.s;
-  const exitF=lt>dur-0.3?clamp((lt-(dur-0.3))/0.3,0,1):0;
+  const exitF=lt>0.5?clamp((lt-0.5)/0.3,0,1):0;
   return(
     <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,display:'flex',alignItems:'center',justifyContent:'center',opacity:1-exitF}}>
       <div style={{opacity:inT,transform:`scale(${.85+ease.outBack(inT)*.15})`}}>
@@ -283,17 +347,16 @@ function SceneForm({t}){
     {label:'What matters most? Pick 2',value:'"Walking distance to campus"\n"Near restaurants & nightlife"',delay:3.0},
   ];
   return(
-    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:280}}>
-      <SessionHeader step={0}/>
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{width:'100%',padding:'0 48px'}}>
-        <div style={{fontWeight:700,fontSize:34,letterSpacing:'-.01em',color:C.dark,marginBottom:28,lineHeight:1.25}}>
-          Let's find your place.<br/><span style={{color:C.gray,fontWeight:600}}>First, a few quick questions —</span>
+        <div style={{fontWeight:900,fontSize:52,letterSpacing:'-.03em',color:C.dark,marginBottom:44}}>
+          Find Your <span style={{color:C.red}}>Place</span>
         </div>
         {fields.map((f,i)=>{
           const ft=lt-f.delay;
           return <FormField key={i} label={f.label} value={f.value} active={ft>=0&&ft<1} done={ft>=0.8}/>;
         })}
-        <div style={{marginTop:28,textAlign:'center'}}>
+        <div style={{marginTop:32,textAlign:'center'}}>
           <div style={{
             display:'inline-block',padding:'26px 60px',borderRadius:999,
             background:btnT>0.5?C.red:'rgba(226,58,47,.15)',
@@ -324,30 +387,30 @@ function MatchCard({name,hood,price,specs,walkCampus,walkShuttle,delay,lt,badge,
       opacity:t,transform:`translateY(${(1-e)*80}px)`,position:'relative',
     }}>
       {badge&&(
-        <div style={{position:'absolute',top:14,left:14,zIndex:5,padding:'8px 16px',background:C.red,color:'#fff',borderRadius:10,fontWeight:800,fontSize:18,letterSpacing:'.1em',textTransform:'uppercase'}}>TOP PICK</div>
+        <div style={{position:'absolute',top:12,left:12,zIndex:5,padding:'7px 14px',background:C.red,color:'#fff',borderRadius:10,fontWeight:800,fontSize:15,letterSpacing:'.1em',textTransform:'uppercase'}}>TOP PICK</div>
       )}
-      <img src={photo} style={{width:'100%',height:300,objectFit:'cover',display:'block'}}/>
-      <div style={{padding:'18px 26px'}}>
-        <div style={{fontWeight:800,fontSize:30,color:C.dark}}>{name}</div>
-        <div style={{fontSize:21,color:C.gray,marginTop:3}}>{hood}</div>
+      <img src={photo} style={{width:'100%',aspectRatio:'2/1',objectFit:'cover',display:'block'}}/>
+      <div style={{padding:'14px 20px'}}>
+        <div style={{fontWeight:800,fontSize:24,color:C.dark}}>{name}</div>
+        <div style={{fontSize:16,color:C.gray,marginTop:2}}>{hood}</div>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:8}}>
-          <div style={{fontWeight:800,fontSize:30,color:C.dark}}>{price}</div>
+          <div style={{fontWeight:800,fontSize:24,color:C.dark}}>{price}</div>
         </div>
-        <div style={{fontSize:21,color:C.gray,marginTop:4}}>{specs}</div>
-        <div style={{display:'flex',alignItems:'center',gap:20,marginTop:10}}>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{fontSize:23,fontWeight:700,color:C.red}}>{walkCampus}</span>
-            <span style={{fontSize:18,color:C.gray}}>campus</span>
+        <div style={{fontSize:16,color:C.gray,marginTop:3}}>{specs}</div>
+        <div style={{display:'flex',alignItems:'center',gap:16,marginTop:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <span style={{fontSize:16,fontWeight:700,color:C.red}}>{walkCampus}</span>
+            <span style={{fontSize:14,color:C.gray}}>campus</span>
           </div>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{fontSize:23,fontWeight:700,color:C.green}}>{walkShuttle}</span>
-            <span style={{fontSize:18,color:C.gray}}>shuttle</span>
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <span style={{fontSize:16,fontWeight:700,color:C.green}}>{walkShuttle}</span>
+            <span style={{fontSize:14,color:C.gray}}>shuttle</span>
           </div>
         </div>
         {pills&&pills.length>0&&(
-          <div style={{display:'flex',gap:8,marginTop:10,flexWrap:'wrap'}}>
+          <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
             {pills.map((p,i)=>(
-              <div key={i} style={{padding:'7px 14px',borderRadius:999,background:C.red,color:'#fff',fontSize:19,fontWeight:700}}>{p}</div>
+              <div key={i} style={{padding:'5px 12px',borderRadius:999,background:C.red,color:'#fff',fontSize:15,fontWeight:700}}>{p}</div>
             ))}
           </div>
         )}
@@ -370,19 +433,18 @@ function SceneCards({t}){
   const pressScale=pressDown>0?(pressUp>0?1-pressUp*0.05:0.92+0.03*(1-ease.outCubic(pressDown))):1;
   const pressedState=pressDown>0.5;
   return(
-    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:280}}>
-      <SessionHeader step={1}/>
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:110}}>
       <div style={{width:'100%',padding:'0 48px'}}>
-        <div style={{fontWeight:800,fontSize:34,color:C.dark,marginBottom:18}}>Here are your matches</div>
+        <div style={{fontWeight:800,fontSize:28,color:C.dark,marginBottom:16}}>Your matches</div>
         <div style={{display:'flex',flexDirection:'column',gap:12}}>
           <MatchCard lt={lt} delay={0.2} badge={true} name="6040 Kingsbury Ave" hood="St. Louis, MO 63112" price="$1,395/mo" specs="2 bed | 1 bath | Standard" walkCampus="19 min" walkShuttle="1 min" photo={PHOTOS.card1} pills={['Walking distance','Near nightlife']}/>
           <MatchCard lt={lt} delay={0.5} badge={false} name="Tanjiers" hood="5522 Delmar Blvd, St. Louis, MO 63112" price="$938-$1,169/mo" specs="0-2 bed | 1 bath | Standard" walkCampus="34 min" walkShuttle="2 min" photo={PHOTOS.card2} pills={['Near restaurants']}/>
         </div>
         <div style={{marginTop:20,textAlign:'center',opacity:nst,transform:`translateY(${(1-ease.outCubic(nst))*20}px)`}}>
           <div style={{
-            display:'inline-block',padding:'18px 52px',borderRadius:999,
+            display:'inline-block',padding:'16px 48px',borderRadius:999,
             border:`2.5px solid ${pressedState?C.red:'rgba(0,0,0,.12)'}`,
-            fontWeight:700,fontSize:30,
+            fontWeight:700,fontSize:26,
             color:pressedState?C.red:C.gray,
             background:pressedState?'rgba(226,58,47,.06)':'transparent',
             transform:`scale(${pressScale})`,
@@ -405,7 +467,7 @@ function ChatBubble({from,text,delay,lt}){
         maxWidth:'80%',padding:'22px 26px',borderRadius:22,
         borderBottomLeftRadius:isBot?4:22,borderBottomRightRadius:isBot?22:4,
         background:isBot?C.white:C.red,color:isBot?C.dark:'#fff',
-        fontSize:28,fontWeight:500,lineHeight:1.4,
+        fontSize:25,fontWeight:500,lineHeight:1.4,
         boxShadow:isBot?'0 4px 16px rgba(0,0,0,.06)':'0 4px 16px rgba(226,58,47,.2)',
       }}>{text}</div>
     </div>
@@ -425,14 +487,12 @@ function SceneChat({t}){
   const clickScale=clickDown>0?(clickUp>0?0.96+clickUp*0.04:1-clickDown*0.04):1;
   const clickHighlight=clickDown>0&&clickUp<1;
   return(
-    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:280}}>
-      <SessionHeader step={2}/>
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{width:'100%',padding:'0 48px'}}>
-        {/* Same concierge thread continuing — now refining after the matches */}
-        <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:24}}>
-          <div style={{flex:1,height:1,background:C.border}}/>
-          <div style={{fontWeight:600,fontSize:19,color:C.gray,whiteSpace:'nowrap'}}>Refining your matches</div>
-          <div style={{flex:1,height:1,background:C.border}}/>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:36}}>
+          <div style={{width:14,height:14,borderRadius:'50%',background:C.green}}/>
+          <div style={{fontWeight:800,fontSize:24,color:C.dark}}>Proximity Concierge</div>
+          <div style={{fontWeight:600,fontSize:16,color:C.green,letterSpacing:'.08em',textTransform:'uppercase'}}>REPLYING LIVE</div>
         </div>
         <ChatBubble from="bot"  lt={lt} delay={0.3} text="Would you spend $50/month more to have a gym in your building?"/>
         <ChatBubble from="user" lt={lt} delay={1.2} text="yes, does it include parking?"/>
@@ -450,19 +510,19 @@ function SceneChat({t}){
               border:`2.5px solid ${clickHighlight?C.red:'rgba(226,58,47,.4)'}`,
             }}>
               <img src={PHOTOS.chatCard} style={{width:'100%',height:300,objectFit:'cover',display:'block'}}/>
-              <div style={{padding:'22px 26px'}}>
-                <div style={{fontWeight:800,fontSize:34,color:C.dark}}>Park Lux</div>
-                <div style={{fontSize:23,color:C.gray,marginTop:5}}>5560 Pershing Ave, St. Louis, MO 63112</div>
-                <div style={{fontWeight:800,fontSize:32,color:C.dark,marginTop:9}}>$1,420-$1,520/mo</div>
-                <div style={{fontSize:23,color:C.gray,marginTop:6}}>2 bed | 1-1.5 bath | Standard</div>
-                <div style={{display:'flex',alignItems:'center',gap:24,marginTop:12}}>
-                  <div style={{display:'flex',alignItems:'center',gap:7}}>
-                    <span style={{fontSize:24,fontWeight:700,color:C.red}}>33 min</span>
-                    <span style={{fontSize:20,color:C.gray}}>campus</span>
+              <div style={{padding:'20px 24px'}}>
+                <div style={{fontWeight:800,fontSize:28,color:C.dark}}>Park Lux</div>
+                <div style={{fontSize:19,color:C.gray,marginTop:4}}>5560 Pershing Ave, St. Louis, MO 63112</div>
+                <div style={{fontWeight:800,fontSize:26,color:C.dark,marginTop:8}}>$1,420-$1,520/mo</div>
+                <div style={{fontSize:19,color:C.gray,marginTop:5}}>2 bed | 1-1.5 bath | Standard</div>
+                <div style={{display:'flex',alignItems:'center',gap:20,marginTop:10}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:19,fontWeight:700,color:C.red}}>33 min</span>
+                    <span style={{fontSize:17,color:C.gray}}>campus</span>
                   </div>
-                  <div style={{display:'flex',alignItems:'center',gap:7}}>
-                    <span style={{fontSize:24,fontWeight:700,color:C.green}}>6 min</span>
-                    <span style={{fontSize:20,color:C.gray}}>shuttle</span>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <span style={{fontSize:19,fontWeight:700,color:C.green}}>6 min</span>
+                    <span style={{fontSize:17,color:C.gray}}>shuttle</span>
                   </div>
                 </div>
               </div>
@@ -487,42 +547,40 @@ function SceneListing({t}){
   const exitF=t>TB.tour.e-0.3?clamp((t-(TB.tour.e-0.3))/0.3,0,1):0;
   const amenities=['Furnished','In-unit laundry','Gym','Parking'];
   return(
-    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'flex-start',justifyContent:'center',paddingTop:280}}>
-      <SessionHeader step={3}/>
+    <div style={{position:'absolute',inset:0,zIndex:15,background:C.offWhite,opacity:inT*(1-exitF),display:'flex',alignItems:'center',justifyContent:'center'}}>
       <div style={{
         width:'calc(100% - 64px)',
         borderRadius:24,background:C.white,overflow:'hidden',
         boxShadow:'0 20px 60px rgba(0,0,0,.12)',
         transform:`scale(${.9+ie*.1})`,
-        transformOrigin:'top center',
         display:'flex',flexDirection:'column',
       }}>
-        <div style={{width:'100%',height:440,overflow:'hidden',flexShrink:0}}>
+        <div style={{width:'100%',aspectRatio:'16/9',overflow:'hidden',flexShrink:0}}>
           <img src={PHOTOS.listing} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
         </div>
-        <div style={{padding:'30px 36px',display:'flex',flexDirection:'column'}}>
-          <div style={{fontWeight:900,fontSize:46,color:C.dark}}>Park Lux</div>
-          <div style={{fontSize:27,color:C.gray,marginTop:8}}>5560 Pershing Ave, St. Louis, MO 63112</div>
-          <div style={{fontWeight:800,fontSize:38,color:C.dark,marginTop:12}}>$1,420-$1,520/mo</div>
-          <div style={{fontSize:25,color:C.gray,marginTop:8}}>2 bed | 1-1.5 bath | Standard</div>
-          <div style={{marginTop:16,fontSize:25,color:C.gray,lineHeight:1.5}}>Spacious units near the Loop with modern finishes, in-unit laundry, and walkable access to campus...</div>
-          <div style={{display:'flex',gap:12,marginTop:16,flexWrap:'wrap'}}>
-            <div style={{padding:'10px 18px',borderRadius:10,background:'rgba(226,58,47,.08)',fontSize:22,fontWeight:600,color:C.red}}>33 min walk to campus</div>
-            <div style={{padding:'10px 18px',borderRadius:10,background:'rgba(34,197,94,.08)',fontSize:22,fontWeight:600,color:C.green}}>6 min to shuttle</div>
+        <div style={{padding:'28px 32px',display:'flex',flexDirection:'column'}}>
+          <div style={{fontWeight:900,fontSize:40,color:C.dark}}>Park Lux</div>
+          <div style={{fontSize:22,color:C.gray,marginTop:6}}>5560 Pershing Ave, St. Louis, MO 63112</div>
+          <div style={{fontWeight:800,fontSize:32,color:C.dark,marginTop:10}}>$1,420-$1,520/mo</div>
+          <div style={{fontSize:20,color:C.gray,marginTop:6}}>2 bed | 1-1.5 bath | Standard</div>
+          <div style={{marginTop:14,fontSize:20,color:C.gray,lineHeight:1.5}}>Spacious units near the Loop with modern finishes, in-unit laundry, and walkable access to campus...</div>
+          <div style={{display:'flex',gap:12,marginTop:14,flexWrap:'wrap'}}>
+            <div style={{padding:'8px 16px',borderRadius:10,background:'rgba(226,58,47,.08)',fontSize:18,fontWeight:600,color:C.red}}>33 min walk to campus</div>
+            <div style={{padding:'8px 16px',borderRadius:10,background:'rgba(34,197,94,.08)',fontSize:18,fontWeight:600,color:C.green}}>6 min to shuttle</div>
           </div>
           <div style={{display:'flex',gap:10,marginTop:14,flexWrap:'wrap'}}>
             {amenities.map((a,i)=>{
               const at=clamp((lt-0.4-i*0.12)/0.25,0,1);
-              return <div key={i} style={{padding:'10px 18px',borderRadius:12,background:C.redTint,fontSize:22,fontWeight:700,color:C.red,opacity:at}}>{a}</div>;
+              return <div key={i} style={{padding:'8px 16px',borderRadius:12,background:C.redTint,fontSize:18,fontWeight:700,color:C.red,opacity:at}}>{a}</div>;
             })}
           </div>
-          <div style={{marginTop:14}}>
-            <div style={{display:'inline-block',padding:'10px 18px',borderRadius:10,background:'rgba(34,197,94,.1)',fontSize:22,fontWeight:700,color:C.green}}>Utilities Included</div>
+          <div style={{marginTop:12}}>
+            <div style={{display:'inline-block',padding:'8px 16px',borderRadius:10,background:'rgba(34,197,94,.1)',fontSize:18,fontWeight:700,color:C.green}}>Utilities Included</div>
           </div>
-          <div style={{marginTop:22}}>
+          <div style={{marginTop:24}}>
             <div style={{
-              textAlign:'center',padding:'24px 0',borderRadius:999,
-              background:confirmed?C.green:C.red,color:'#fff',fontWeight:800,fontSize:34,
+              textAlign:'center',padding:'22px 0',borderRadius:999,
+              background:confirmed?C.green:C.red,color:'#fff',fontWeight:800,fontSize:28,
               boxShadow:confirmed?'0 6px 20px rgba(34,197,94,.3)':'0 6px 20px rgba(226,58,47,.3)',
               transform:`scale(${tourScale})`,
             }}>{confirmed?'✓ Tour Requested':'Request Tour'}</div>
@@ -569,6 +627,8 @@ function App(){
   const sfxRef=React.useRef(null);
   const firedRef=React.useRef(new Set());
   const startTimeRef=React.useRef(null);
+  const vidFwdRef=React.useRef(null);
+  const vidRevRef=React.useRef(null);
 
   React.useEffect(()=>{
     const m=()=>setZoom(Math.min(window.innerWidth/1080,window.innerHeight/1920));
@@ -581,10 +641,10 @@ function App(){
     const fired=firedRef.current;
     const fire=(k,time,fn)=>{if(t>=time&&!fired.has(k)){fired.add(k);fn();}};
 
-    /* Hook SFX — typographic impacts */
-    fire('hit1',TH.line1,()=>sfx.impact());
-    fire('hit2',TH.line2,()=>sfx.impact());
-    fire('fixedIt',TH.fixed,()=>sfx.impact());
+    /* Hook SFX — text impacts only; video has its own crack audio */
+    fire('hit1',TH.hit1,()=>sfx.impact());
+    fire('hit2',TH.hit2,()=>sfx.impact());
+    fire('fixedIt',TH.fixedIt,()=>sfx.impact());
     fire('beatDrop',TH.beatDrop,()=>sfx.beatDrop());
 
     /* Body SFX */
@@ -628,6 +688,9 @@ function App(){
     startTimeRef.current=null;
     setT(0);
     setDone(false);
+    /* Reset videos */
+    if(vidFwdRef.current){vidFwdRef.current.pause();vidFwdRef.current.currentTime=0;}
+    if(vidRevRef.current){vidRevRef.current.pause();vidRevRef.current.currentTime=0;}
     setStarted(true);
   };
 
@@ -644,7 +707,7 @@ function App(){
         <Chrome visible={showChrome}/>
         {started&&!done&&(
           <>
-            <SceneHook t={t}/>
+            <SceneHook t={t} vidFwdRef={vidFwdRef} vidRevRef={vidRevRef}/>
             <SceneFormTitle t={t}/>
             <SceneForm t={t}/>
             <SceneCards t={t}/>
@@ -654,11 +717,19 @@ function App(){
           </>
         )}
 
+        {/* Hidden video elements for preloading */}
+        <video ref={vidFwdRef} playsInline preload="auto" style={{display:'none'}}>
+          <source src="glass.mp4" type="video/mp4"/>
+        </video>
+        <video ref={vidRevRef} playsInline preload="auto" style={{display:'none'}}>
+          <source src="glass-reverse.mp4" type="video/mp4"/>
+        </video>
+
         {!started&&(
           <div onClick={begin} style={{position:'absolute',inset:0,zIndex:500,background:'#0A0A0B',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
             <Logo size={140} color={C.red}/>
             <div style={{marginTop:28,fontWeight:900,fontSize:72,letterSpacing:'-.04em',color:'#fff'}}>Proximity</div>
-            <div style={{marginTop:14,fontWeight:700,fontSize:19,letterSpacing:'.3em',textTransform:'uppercase',color:'rgba(255,255,255,.45)'}}>it's broken hook &middot; sound on</div>
+            <div style={{marginTop:14,fontWeight:700,fontSize:19,letterSpacing:'.3em',textTransform:'uppercase',color:'rgba(255,255,255,.45)'}}>glass shatter hook &middot; sound on</div>
             <div style={{marginTop:60,width:110,height:110,borderRadius:'50%',background:C.red,display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
               <div style={{width:0,height:0,borderLeft:'30px solid #fff',borderTop:'20px solid transparent',borderBottom:'20px solid transparent',marginLeft:10}}/>
               <span style={{position:'absolute',inset:0,borderRadius:'50%',background:C.red,animation:'pulse 1.8s ease-out infinite',zIndex:-1}}/>
