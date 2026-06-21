@@ -192,12 +192,12 @@ function Logo({size=80,color=C.red}){
 function Chrome({visible}){
   if(!visible)return null;
   return(
-    <div style={{position:'absolute',top:48,left:48,right:48,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-      <div style={{display:'flex',alignItems:'center',gap:16}}>
-        <Logo size={56} color={C.red}/>
-        <span style={{fontFamily:'Inter',fontWeight:900,fontSize:28,color:C.dark,letterSpacing:'-.02em'}}>Proximity</span>
+    <div style={{position:'absolute',top:56,left:48,right:48,zIndex:100,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{display:'flex',alignItems:'center',gap:20}}>
+        <Logo size={80} color={C.red}/>
+        <span style={{fontFamily:'Inter',fontWeight:900,fontSize:42,color:C.dark,letterSpacing:'-.02em'}}>Proximity</span>
       </div>
-      <span style={{fontFamily:'Inter',fontWeight:700,fontSize:18,letterSpacing:'.18em',textTransform:'uppercase',color:C.red}}>FOR WASHU STUDENTS</span>
+      <span style={{fontFamily:'Inter',fontWeight:800,fontSize:26,letterSpacing:'.14em',textTransform:'uppercase',color:C.red}}>FOR WASHU STUDENTS</span>
     </div>
   );
 }
@@ -239,7 +239,7 @@ function SceneIntro({t}){
       <div style={{marginTop:36,fontWeight:900,fontSize:96,letterSpacing:'-.04em',color:C.dark,opacity:nameT,transform:`translateY(${(1-ne)*20}px)`}}>
         Proximity
       </div>
-      <div style={{marginTop:20,fontWeight:700,fontSize:24,letterSpacing:'.28em',textTransform:'uppercase',color:C.red,opacity:subT,transform:`translateY(${(1-ease.outCubic(subT))*12}px)`}}>
+      <div style={{marginTop:24,fontWeight:700,fontSize:32,letterSpacing:'.22em',textTransform:'uppercase',color:C.red,opacity:subT,transform:`translateY(${(1-ease.outCubic(subT))*12}px)`}}>
         WashU off-campus housing
       </div>
     </div>
@@ -263,7 +263,7 @@ function SceneTabs({t}){
   return(
     <div style={{position:'absolute',inset:0,opacity:1-exitF}}>
       <div style={{position:'absolute',left:80,right:80,top:320,opacity:headT,transform:`translateY(${(1-he)*30}px)`}}>
-        <div style={{fontWeight:700,fontSize:22,letterSpacing:'.25em',textTransform:'uppercase',color:C.red,marginBottom:28}}>OFF-CAMPUS HOUSING NEAR WASHU</div>
+        <div style={{fontWeight:700,fontSize:30,letterSpacing:'.2em',textTransform:'uppercase',color:C.red,marginBottom:28}}>OFF-CAMPUS HOUSING NEAR WASHU</div>
         <div style={{fontWeight:900,fontSize:120,lineHeight:.92,letterSpacing:'-.045em',color:C.dark}}>
           5 TABS.<br/><span style={{color:C.red}}>ZERO<br/>ANSWERS.</span>
         </div>
@@ -276,10 +276,10 @@ function SceneTabs({t}){
           const strikeT=clamp((lt-strikeStart)/0.3,0,1);
           const strikeE=ease.inOutCubic(strikeT);
           return(
-            <div key={i} style={{display:'flex',alignItems:'center',gap:16,padding:'20px 28px',borderRadius:16,background:C.white,border:'1.5px solid rgba(0,0,0,.06)',boxShadow:'0 2px 8px rgba(0,0,0,.04)',opacity:tt,transform:`translateX(${(1-te)*50}px)`,position:'relative'}}>
-              <div style={{width:40,height:40,borderRadius:10,background:tab.color,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:18,flexShrink:0}}>{tab.fav}</div>
-              <div style={{fontWeight:600,fontSize:26,color:strikeT>0?C.gray:C.dark,letterSpacing:'-.01em',transition:'color 0.2s'}}>{tab.label}</div>
-              <div style={{marginLeft:'auto',color:'rgba(0,0,0,.3)',fontSize:22}}>x</div>
+            <div key={i} style={{display:'flex',alignItems:'center',gap:18,padding:'24px 30px',borderRadius:16,background:C.white,border:'1.5px solid rgba(0,0,0,.06)',boxShadow:'0 2px 8px rgba(0,0,0,.04)',opacity:tt,transform:`translateX(${(1-te)*50}px)`,position:'relative'}}>
+              <div style={{width:52,height:52,borderRadius:12,background:tab.color,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontWeight:800,fontSize:24,flexShrink:0}}>{tab.fav}</div>
+              <div style={{fontWeight:600,fontSize:36,color:strikeT>0?C.gray:C.dark,letterSpacing:'-.01em',transition:'color 0.2s'}}>{tab.label}</div>
+              <div style={{marginLeft:'auto',color:'rgba(0,0,0,.3)',fontSize:28}}>x</div>
               {strikeT>0&&(
                 <div style={{position:'absolute',left:28,right:28,top:'50%',height:3,borderRadius:2,background:C.red,transformOrigin:'left center',transform:`scaleX(${strikeE})`,opacity:0.85+strikeE*0.15}}/>
               )}
@@ -313,28 +313,28 @@ function ReviewCard({name,address,quote,rating,good,delay,lt,img,walk,price}){
       }}>
         <div style={{position:'relative',width:'100%',height:460,overflow:'hidden'}}>
           <img src={img} style={{width:'100%',height:'100%',objectFit:'cover',objectPosition:'center 35%'}}/>
-          <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'8px 20px',background:'linear-gradient(transparent,rgba(0,0,0,.55))',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div style={{fontSize:20,fontWeight:700,color:'#fff'}}>{walk} walk to campus</div>
-            <div style={{fontSize:20,fontWeight:800,color:'#fff'}}>{price}</div>
+          <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'12px 24px',background:'linear-gradient(transparent,rgba(0,0,0,.6))',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div style={{fontSize:26,fontWeight:700,color:'#fff'}}>{walk} walk to campus</div>
+            <div style={{fontSize:26,fontWeight:800,color:'#fff'}}>{price}</div>
           </div>
         </div>
-        <div style={{padding:'20px 32px'}}>
-          <div style={{fontWeight:800,fontSize:24,color:C.dark,letterSpacing:'-.01em'}}>{address}</div>
+        <div style={{padding:'22px 32px'}}>
+          <div style={{fontWeight:800,fontSize:32,color:C.dark,letterSpacing:'-.01em'}}>{address}</div>
         </div>
       </div>
       {popT>0&&(
         <div style={{
-          position:'absolute',right:-16,top:'30%',width:300,
-          marginTop:-80,
-          padding:'22px 24px',borderRadius:14,
+          position:'absolute',right:-16,top:'30%',width:360,
+          marginTop:-90,
+          padding:'24px 28px',borderRadius:16,
           background:accent,
           boxShadow:`0 12px 40px ${good?'rgba(34,197,94,.35)':'rgba(226,58,47,.35)'}`,
           transform:`scale(${.85+popE*.15}) translateX(${(1-popE)*30}px)`,
           opacity:popT,zIndex:10,
         }}>
-          <div style={{fontSize:22,color:'rgba(255,255,255,.9)',marginBottom:10}}>{stars}</div>
-          <div style={{fontSize:22,fontWeight:600,lineHeight:1.35,color:'#fff',fontStyle:'italic'}}>"{quote}"</div>
-          <div style={{marginTop:10,fontSize:16,fontWeight:800,color:'rgba(255,255,255,.85)'}}>— {name}</div>
+          <div style={{fontSize:26,color:'rgba(255,255,255,.9)',marginBottom:10}}>{stars}</div>
+          <div style={{fontSize:27,fontWeight:600,lineHeight:1.35,color:'#fff',fontStyle:'italic'}}>"{quote}"</div>
+          <div style={{marginTop:12,fontSize:21,fontWeight:800,color:'rgba(255,255,255,.85)'}}>— {name}</div>
         </div>
       )}
     </div>
@@ -350,7 +350,7 @@ function SceneReviews({t}){
   return(
     <div style={{position:'absolute',inset:0,opacity:1-exitF}}>
       <div style={{position:'absolute',left:80,right:80,top:260,opacity:headT,transform:`translateY(${(1-he)*30}px)`}}>
-        <div style={{fontWeight:700,fontSize:22,letterSpacing:'.25em',textTransform:'uppercase',color:C.red,marginBottom:28}}>REAL STUDENTS. REAL REVIEWS.</div>
+        <div style={{fontWeight:700,fontSize:30,letterSpacing:'.18em',textTransform:'uppercase',color:C.red,marginBottom:28}}>REAL STUDENTS. REAL REVIEWS.</div>
         <div style={{fontWeight:900,fontSize:100,lineHeight:.92,letterSpacing:'-.04em',color:C.dark}}>
           Read the<br/><span style={{color:C.red}}>receipts.</span>
         </div>
@@ -417,10 +417,10 @@ function SceneCTA({t}){
         </div>
       </div>
       <div style={{marginTop:36,opacity:urlT,transform:`translateY(${(1-ease.outCubic(urlT))*16}px)`}}>
-        <div style={{fontSize:30,fontWeight:600,letterSpacing:'.03em',color:C.dark}}>useproximity.org</div>
+        <div style={{fontSize:38,fontWeight:600,letterSpacing:'.03em',color:C.dark}}>useproximity.org</div>
       </div>
       <div style={{marginTop:24,opacity:freeT}}>
-        <div style={{fontSize:18,fontWeight:700,letterSpacing:'.3em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>
+        <div style={{fontSize:24,fontWeight:700,letterSpacing:'.26em',textTransform:'uppercase',color:C.gray}}>FREE FOR WASHU STUDENTS</div>
       </div>
     </div>
   );
